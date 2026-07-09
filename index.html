@@ -340,6 +340,7 @@ const cache = {
   grades: {},              // periodId -> uid -> {autoGrade, finalGrade, overridden}
   complaintCategories: {}, // catId -> {title, color}
   complaints: {},          // id -> {categoryId, title, content, targetUid, submittedBy, status, createdAt}
+  applicationVotes: {},    // dutyId -> applicantUid -> voterUid -> 'O'|'X'
   settings: { currentPeriodId: null, voteCycle: 'weekly' }
 };
 
@@ -375,7 +376,7 @@ function init() {
 
 function attachRealtimeListeners() {
   if (!dbReady) return;
-  const paths = ['users', 'duties', 'periods', 'completions', 'votes', 'grades', 'complaintCategories', 'complaints', 'settings'];
+  const paths = ['users', 'duties', 'periods', 'completions', 'votes', 'grades', 'complaintCategories', 'complaints', 'applicationVotes', 'settings'];
   paths.forEach(path => {
     db.ref(path).on('value', snap => {
       const val = snap.val() || (path === 'settings' ? { currentPeriodId: null, voteCycle: 'weekly' } : {});
@@ -535,7 +536,8 @@ const NAV_ICONS = {
   grades: '<path d="M12 20v-6M6 20V10M18 20V4"/>',
   complaints: '<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>',
   settings: '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.87l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.7 1.7 0 0 0-1.87-.34 1.7 1.7 0 0 0-1 1.55V21a2 2 0 0 1-4 0v-.09A1.7 1.7 0 0 0 9 19.4a1.7 1.7 0 0 0-1.87.34l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.7 1.7 0 0 0 4.6 15a1.7 1.7 0 0 0-1.55-1H3a2 2 0 0 1 0-4h.09A1.7 1.7 0 0 0 4.6 9a1.7 1.7 0 0 0-.34-1.87l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.7 1.7 0 0 0 9 4.6a1.7 1.7 0 0 0 1-1.55V3a2 2 0 0 1 4 0v.09a1.7 1.7 0 0 0 1 1.55 1.7 1.7 0 0 0 1.87-.34l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.7 1.7 0 0 0 19.4 9a1.7 1.7 0 0 0 1.55 1H21a2 2 0 0 1 0 4h-.09a1.7 1.7 0 0 0-1.51 1z"/>',
-  me: '<circle cx="12" cy="8" r="4"/><path d="M4 21v-1a6 6 0 0 1 6-6h4a6 6 0 0 1 6 6v1"/>'
+  me: '<circle cx="12" cy="8" r="4"/><path d="M4 21v-1a6 6 0 0 1 6-6h4a6 6 0 0 1 6 6v1"/>',
+  apply: '<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M19 8v6M22 11h-6"/>'
 };
 
 function navBadgeCount(id) {
@@ -565,11 +567,30 @@ function navBadgeCount(id) {
     if (!isAdmin()) return 0;
     return Object.values(cache.complaints || {}).filter(c => c.status === 'pending').length;
   }
+  if (id === 'apply') {
+    if (isAdmin()) {
+      let count = 0;
+      Object.values(cache.duties || {}).forEach(d => {
+        Object.values(d.applications || {}).forEach(a => { if (a.status === 'pending') count++; });
+      });
+      return count;
+    }
+    let count = 0;
+    Object.entries(cache.duties || {}).forEach(([dutyId, d]) => {
+      Object.entries(d.applications || {}).forEach(([applicantUid, a]) => {
+        if (a.status !== 'pending' || applicantUid === currentUser.uid) return;
+        const myVote = ((cache.applicationVotes[dutyId] || {})[applicantUid] || {})[currentUser.uid];
+        if (!myVote) count++;
+      });
+    });
+    return count;
+  }
   return 0;
 }
 
 function navItemsList() {
   const items = [{ id: 'dashboard', label: '대시보드' }];
+  items.push({ id: 'apply', label: '1인1역 신청' });
   if (isManagerOfAny()) items.push({ id: 'checks', label: '임무 확인' });
   items.push({ id: 'vote', label: '주간 투표' });
   items.push({ id: 'complaints', label: '민원' });
@@ -626,6 +647,7 @@ function renderPage(id) {
     dashboard: ['대시보드', '전체 현황을 한눈에 확인해요'],
     accounts: ['계정 관리', '멤버 계정을 생성하고 관리해요'],
     duties: ['1인1역 관리', '역할을 만들고 멤버·관리자를 배정해요'],
+    apply: ['1인1역 신청', '하고 싶은 1인1역에 신청하고 동료 투표로 결정돼요'],
     checks: ['임무 확인', '담당 멤버들의 임무 완료 여부를 체크해요'],
     vote: ['주간 투표', '이번 주기 동료 평가에 참여해요'],
     grades: ['등급 관리', '주기별 O/X 결과와 등급을 확인·수정해요'],
@@ -637,7 +659,7 @@ function renderPage(id) {
   document.getElementById('pageSub').textContent = sub;
 
   const renderers = {
-    dashboard: renderDashboard, accounts: renderAccounts, duties: renderDuties,
+    dashboard: renderDashboard, accounts: renderAccounts, duties: renderDuties, apply: renderApply,
     checks: renderChecks, vote: renderVote, grades: renderGrades,
     complaints: renderComplaints, settings: renderSettings
   };
@@ -824,6 +846,140 @@ function renderNoAccess() {
 }
 
 /* ================= DUTIES (1인1역 관리, admin) ================= */
+/* ================= APPLY (1인1역 신청 + 동료 투표 + 관리자 승인) ================= */
+function dutyApplications(dutyId) {
+  return (cache.duties[dutyId] && cache.duties[dutyId].applications) || {};
+}
+function applicationVoteTally(dutyId, applicantUid) {
+  const votes = (cache.applicationVotes[dutyId] || {})[applicantUid] || {};
+  const vals = Object.values(votes);
+  return { o: vals.filter(v => v === 'O').length, x: vals.filter(v => v === 'X').length, total: vals.length, mine: votes[currentUser.uid] };
+}
+function applyForDuty(dutyId) {
+  db.ref(`duties/${dutyId}/applications/${currentUser.uid}`).set({
+    appliedAt: Date.now(), status: 'pending'
+  }).then(() => toast('신청했어! 동료들 투표를 기다려줘'));
+}
+function withdrawApplication(dutyId) {
+  if (!confirm('신청을 취소할까?')) return;
+  db.ref(`duties/${dutyId}/applications/${currentUser.uid}`).remove()
+    .then(() => db.ref(`applicationVotes/${dutyId}/${currentUser.uid}`).remove())
+    .then(() => toast('신청을 취소했어'));
+}
+function castApplicationVote(dutyId, applicantUid, val) {
+  db.ref(`applicationVotes/${dutyId}/${applicantUid}/${currentUser.uid}`).set(val)
+    .then(() => toast('투표했어'));
+}
+function approveApplication(dutyId, applicantUid) {
+  db.ref(`duties/${dutyId}/memberIds/${applicantUid}`).set(true)
+    .then(() => db.ref(`duties/${dutyId}/applications/${applicantUid}/status`).set('approved'))
+    .then(() => toast('승인했어. 멤버로 추가됐어'));
+}
+function rejectApplication(dutyId, applicantUid) {
+  db.ref(`duties/${dutyId}/applications/${applicantUid}/status`).set('rejected')
+    .then(() => toast('거절 처리했어'));
+}
+
+function renderApply() {
+  const duties = Object.entries(cache.duties || {});
+
+  // 1) 신청 가능한 1인1역 (아직 멤버도 아니고 신청도 안 한 것)
+  const applicable = duties.filter(([id, d]) => !(d.memberIds && d.memberIds[currentUser.uid]) && !(dutyApplications(id)[currentUser.uid]));
+
+  // 2) 내 신청 현황
+  const mine = duties.filter(([id]) => dutyApplications(id)[currentUser.uid]);
+
+  // 3) 동료 신청 투표 (다른 사람이 낸 pending 신청들)
+  const othersPending = [];
+  duties.forEach(([dutyId, d]) => {
+    Object.entries(dutyApplications(dutyId)).forEach(([applicantUid, a]) => {
+      if (a.status === 'pending' && applicantUid !== currentUser.uid) {
+        othersPending.push({ dutyId, duty: d, applicantUid, a });
+      }
+    });
+  });
+
+  // 4) 관리자용: 전체 대기중 신청 + 투표집계
+  const adminPending = [];
+  if (isAdmin()) {
+    duties.forEach(([dutyId, d]) => {
+      Object.entries(dutyApplications(dutyId)).forEach(([applicantUid, a]) => {
+        if (a.status === 'pending') adminPending.push({ dutyId, duty: d, applicantUid, a });
+      });
+    });
+  }
+
+  document.getElementById('pageContent').innerHTML = `
+    <div class="card">
+      <h2>신청 가능한 1인1역</h2>
+      ${applicable.length ? `<div class="tile-grid">
+        ${applicable.map(([id, d]) => `
+          <button class="tile" onclick="applyForDuty('${id}')">
+            <span class="ticon" style="background:${d.color}22;"><span class="chip-color" style="background:${d.color};width:18px;height:18px;border-radius:6px;margin:0;"></span></span>
+            <span class="tlabel">${esc(d.title)}</span>
+          </button>`).join('')}
+      </div>` : `<div class="empty">신청할 수 있는 1인1역이 없어요 (이미 다 신청했거나 멤버로 등록돼 있어요)</div>`}
+    </div>
+
+    <div class="card">
+      <h2>내 신청 현황</h2>
+      ${mine.length ? mine.map(([id, d]) => {
+        const a = dutyApplications(id)[currentUser.uid];
+        const tally = applicationVoteTally(id, currentUser.uid);
+        const statusLabel = a.status === 'pending' ? '투표 진행중' : a.status === 'approved' ? '승인됨' : '거절됨';
+        const statusClass = a.status === 'pending' ? 'pending' : a.status === 'approved' ? 'resolved' : 'grade-D';
+        return `<div class="list-item">
+          <span class="ldot" style="background:${d.color}"></span>
+          <span class="lname">${esc(d.title)} <span style="color:var(--text-dim);font-weight:400;font-size:11.5px;">· O ${tally.o} / X ${tally.x}</span></span>
+          <span class="badge ${statusClass}">${statusLabel}</span>
+          ${a.status === 'pending' ? `<button class="btn ghost small" onclick="withdrawApplication('${id}')">취소</button>` : ''}
+        </div>`;
+      }).join('') : `<div class="empty">신청한 1인1역이 없어요</div>`}
+    </div>
+
+    <div class="card">
+      <h2>동료 신청 투표</h2>
+      ${othersPending.length ? `<div class="vote-grid">
+        ${othersPending.map(({ dutyId, duty, applicantUid, a }) => {
+          const tally = applicationVoteTally(dutyId, applicantUid);
+          return `<div class="vote-card">
+            <div class="name">${esc(userName(applicantUid))}</div>
+            <div style="font-size:11px;color:var(--text-dim);margin-bottom:8px;">${esc(duty.title)} · O ${tally.o} / X ${tally.x}</div>
+            <div class="ox-btns">
+              <button class="o ${tally.mine === 'O' ? 'sel' : ''}" onclick="castApplicationVote('${dutyId}','${applicantUid}','O')">O</button>
+              <button class="x ${tally.mine === 'X' ? 'sel' : ''}" onclick="castApplicationVote('${dutyId}','${applicantUid}','X')">X</button>
+            </div>
+          </div>`;
+        }).join('')}
+      </div>` : `<div class="empty">투표할 신청이 없어요</div>`}
+    </div>
+
+    ${isAdmin() ? `
+    <div class="card">
+      <h2>신청 승인 관리</h2>
+      <table>
+        <thead><tr><th>신청자</th><th>1인1역</th><th>O</th><th>X</th><th></th></tr></thead>
+        <tbody>
+        ${adminPending.length ? adminPending.map(({ dutyId, duty, applicantUid }) => {
+          const tally = applicationVoteTally(dutyId, applicantUid);
+          return `<tr>
+            <td>${esc(userName(applicantUid))}</td>
+            <td><span class="chip-color" style="background:${duty.color}"></span>${esc(duty.title)}</td>
+            <td>${tally.o}</td>
+            <td>${tally.x}</td>
+            <td>
+              <button class="btn small" onclick="approveApplication('${dutyId}','${applicantUid}')">승인</button>
+              <button class="btn ghost small" onclick="rejectApplication('${dutyId}','${applicantUid}')">거절</button>
+            </td>
+          </tr>`;
+        }).join('') : `<tr><td colspan="5" class="empty">대기중인 신청이 없어요</td></tr>`}
+        </tbody>
+      </table>
+    </div>` : ''}
+  `;
+}
+
+
 function renderDuties() {
   if (!isAdmin()) return renderNoAccess();
   document.getElementById('topbarActions').innerHTML = `<button class="btn" onclick="openCreateDutyModal()">+ 1인1역 만들기</button>`;
