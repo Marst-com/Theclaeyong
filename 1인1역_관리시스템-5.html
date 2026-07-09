@@ -1,0 +1,1225 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>1인1역 관리 시스템</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --green-50:#eafcf1; --green-100:#d7f7e3; --green-200:#a9edc4;
+  --green-500:#1bb052; --green-600:#159244; --green-700:#0f7536;
+  --bg:#eafcf1; --bg-elev:#ffffff; --bg-elev2:#eafaf0;
+  --text:#16201a; --text-dim:#7c8b81; --border:#e6f4ec;
+  --danger:#ef4444; --danger-soft:#fde8e8; --warn:#f59e0b;
+  --gray-soft:#eef1ee; --gray-text:#6b7280;
+  --indigo-a:#8b7cf6; --indigo-b:#4f46e5;
+  --radius:20px; --radius-sm:14px;
+  --shadow:0 10px 26px -8px rgba(27,176,82,.22), 0 3px 10px -2px rgba(27,176,82,.10);
+}
+[data-theme="dark"]{
+  --bg:#0c1712; --bg-elev:#141f19; --bg-elev2:#1a2721;
+  --text:#eef4f0; --text-dim:#8ea79a; --border:#223129;
+  --green-50:#0e2317; --green-100:#123420; --gray-soft:#1a2721; --gray-text:#8ea79a;
+  --shadow:0 10px 26px -8px rgba(0,0,0,.35), 0 3px 10px -2px rgba(27,176,82,.08);
+}
+*{box-sizing:border-box; margin:0; padding:0;}
+body{
+  font-family:'Pretendard', -apple-system, BlinkMacSystemFont, sans-serif;
+  background:var(--bg); color:var(--text);
+  min-height:100vh; transition:background .2s, color .2s;
+}
+button, input, select, textarea{ font-family:inherit; }
+button{ cursor:pointer; border:none; background:none; color:inherit; }
+input, select, textarea{
+  background:var(--bg-elev); color:var(--text); border:1px solid var(--border);
+  border-radius:12px; padding:10px 12px; font-size:14px; width:100%;
+}
+input:focus, select:focus, textarea:focus{ outline:2px solid var(--green-500); outline-offset:-1px; }
+
+/* ---------- Layout ---------- */
+.app{ display:none; min-height:100vh; }
+.app.active{ display:flex; }
+.sidebar{
+  width:230px; flex-shrink:0; background:var(--bg-elev); border-right:1px solid var(--border);
+  display:flex; flex-direction:column; padding:18px 14px; gap:4px;
+}
+.brand{ display:flex; align-items:center; gap:10px; padding:8px 6px 20px; }
+.icon-badge{
+  width:36px; height:36px; border-radius:12px; background:var(--green-600);
+  display:flex; align-items:center; justify-content:center; flex-shrink:0;
+}
+.icon-badge svg{ width:18px; height:18px; stroke:#fff; }
+.icon-badge.soft{ background:var(--green-100); }
+.icon-badge.soft svg{ stroke:var(--green-600); }
+.brand-text{ font-weight:800; font-size:15px; letter-spacing:-.2px; }
+.nav-item{
+  display:flex; align-items:center; gap:10px; padding:11px 12px; border-radius:14px;
+  font-size:14px; font-weight:500; color:var(--text-dim); text-align:left;
+}
+.nav-item:hover{ background:var(--bg-elev2); color:var(--text); }
+.nav-item.active{ background:var(--green-600); color:#fff; font-weight:700; }
+.nav-item svg{ width:17px; height:17px; flex-shrink:0; }
+.sidebar-foot{ margin-top:auto; display:flex; flex-direction:column; gap:8px; }
+.user-chip{
+  display:flex; align-items:center; gap:8px; padding:10px 12px; border-radius:14px; background:var(--bg-elev2);
+  font-size:13px; font-weight:600;
+}
+.user-chip .dot{ width:8px; height:8px; border-radius:50%; background:var(--green-500); }
+
+.main{ flex:1; padding:26px 34px 90px; overflow-y:auto; max-height:100vh; }
+.topbar{ display:flex; justify-content:space-between; align-items:center; margin-bottom:22px; gap:12px; flex-wrap:wrap;}
+.topbar h1{ font-size:21px; font-weight:800; letter-spacing:-.3px; }
+.topbar .sub{ font-size:13px; color:var(--text-dim); margin-top:2px; }
+
+.theme-toggle{ display:flex; background:var(--bg-elev2); border-radius:12px; padding:3px; gap:2px; }
+.theme-toggle button{ padding:6px 10px; border-radius:9px; font-size:12px; color:var(--text-dim); }
+.theme-toggle button.active{ background:var(--bg-elev); color:var(--text); box-shadow:0 1px 3px rgba(0,0,0,.08); font-weight:600; }
+
+.card{
+  background:var(--bg-elev); border:1px solid var(--border); border-radius:var(--radius);
+  padding:20px 22px; margin-bottom:16px; box-shadow:var(--shadow);
+}
+.card h2{ font-size:15px; font-weight:800; color:var(--text); margin-bottom:14px; display:flex; align-items:center; gap:8px;}
+.grid2{ display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+.grid3{ display:grid; grid-template-columns:repeat(3,1fr); gap:14px; }
+@media(max-width:760px){ .grid2,.grid3{ grid-template-columns:1fr; } }
+
+/* ---------- Hero / notice cards (앱 스타일) ---------- */
+.hero-card{
+  border-radius:24px; padding:22px 24px; margin-bottom:14px; color:#fff;
+  background:linear-gradient(135deg,var(--green-500),var(--green-700));
+  box-shadow:var(--shadow);
+}
+.hero-card .hlabel{ font-size:12px; opacity:.85; font-weight:600; margin-bottom:8px; }
+.hero-card .hval{ font-size:32px; font-weight:800; display:flex; align-items:center; gap:10px; }
+.hero-card .hicon{
+  width:30px; height:30px; border-radius:50%; background:rgba(255,255,255,.22);
+  display:inline-flex; align-items:center; justify-content:center; font-size:14px;
+}
+.notice-card{
+  border-radius:24px; padding:18px 22px; margin-bottom:14px; color:#fff;
+  background:linear-gradient(135deg,var(--indigo-a),var(--indigo-b));
+  display:flex; align-items:center; gap:14px; box-shadow:var(--shadow);
+}
+.notice-card .nemoji{ font-size:22px; }
+.notice-card .ntitle{ font-weight:800; font-size:15px; margin-bottom:2px; }
+.notice-card .nsub{ font-size:12px; opacity:.85; display:flex; align-items:center; gap:8px; }
+.notice-card .npill{ background:rgba(255,255,255,.25); padding:2px 9px; border-radius:99px; font-weight:700; font-size:11px; }
+
+.tile-grid{ display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-bottom:16px; }
+@media(max-width:760px){ .tile-grid{ grid-template-columns:repeat(3,1fr); } }
+.tile{
+  background:var(--bg-elev); border:1px solid var(--border); border-radius:20px; padding:18px 10px;
+  display:flex; flex-direction:column; align-items:center; gap:10px; text-align:center; position:relative;
+  box-shadow:var(--shadow);
+}
+.tile:hover{ transform:translateY(-1px); }
+.tile .ticon{
+  width:46px; height:46px; border-radius:14px; background:var(--green-100);
+  display:flex; align-items:center; justify-content:center;
+}
+.tile .ticon svg{ width:22px; height:22px; stroke:var(--green-600); }
+.tile .tlabel{ font-size:12.5px; font-weight:700; }
+.tile .tbadge{
+  position:absolute; top:10px; right:14px; background:var(--danger); color:#fff; font-size:10px; font-weight:800;
+  min-width:16px; height:16px; border-radius:99px; display:flex; align-items:center; justify-content:center; padding:0 4px;
+}
+
+.list-item{
+  display:flex; align-items:center; gap:10px; padding:13px 6px; border-bottom:1px solid var(--border);
+}
+.list-item:last-child{ border-bottom:none; }
+.list-item .ldot{ width:8px; height:8px; border-radius:50%; flex-shrink:0; }
+.list-item .lname{ font-size:13.5px; font-weight:800; color:var(--text); flex:1; }
+
+.btn{
+  padding:10px 16px 12px; border-radius:14px; font-size:13px; font-weight:800;
+  background:var(--green-500); color:#fff; display:inline-flex; align-items:center; gap:6px;
+  border-bottom:3px solid var(--green-700); position:relative; top:0; transition:top .08s, border-bottom-width .08s;
+}
+.btn:hover{ background:var(--green-500); }
+.btn:active{ top:2px; border-bottom-width:1px; }
+.btn.ghost{ background:var(--bg-elev2); color:var(--text); border-bottom:3px solid var(--border); }
+.btn.ghost:hover{ background:var(--bg-elev2); }
+.btn.danger{ background:#f4574f; border-bottom:3px solid #b8362f; }
+.btn.small{ padding:6px 10px 8px; font-size:12px; border-radius:11px; border-bottom-width:2px; }
+.btn:disabled{ opacity:.5; cursor:not-allowed; }
+
+.row{ display:flex; align-items:center; gap:10px; }
+.field{ margin-bottom:12px; }
+.field label{ display:block; font-size:12px; font-weight:600; color:var(--text-dim); margin-bottom:6px; }
+
+table{ width:100%; border-collapse:collapse; font-size:13px; }
+th{ text-align:left; padding:8px 10px; color:var(--text-dim); font-weight:600; border-bottom:1px solid var(--border); font-size:12px;}
+td{ padding:10px 10px; border-bottom:1px solid var(--border); }
+tr:last-child td{ border-bottom:none; }
+
+/* ---------- Pill badges (대기/완료 스타일) ---------- */
+.badge{ display:inline-flex; align-items:center; padding:4px 11px; border-radius:99px; font-size:11px; font-weight:800; }
+.badge.grade-A{ background:#dcf7e6; color:#0f6b30; } .badge.grade-B{ background:#dbeafe; color:#1d4ed8; }
+.badge.grade-C{ background:#fef3c7; color:#b45309; } .badge.grade-D{ background:#fde2e2; color:#b91c1c; }
+.badge.grade-null{ background:var(--gray-soft); color:var(--gray-text); }
+.badge.pending{ background:var(--gray-soft); color:var(--gray-text); }
+.badge.resolved{ background:var(--green-100); color:#0f6b30; }
+.badge.solid{ color:#fff; }
+.badge.solid.grade-A{ background:#16a34a; color:#fff; }
+
+td:first-child{ font-weight:700; color:var(--text); }
+
+.chip-color{ width:12px; height:12px; border-radius:4px; display:inline-block; margin-right:6px; vertical-align:-1px;}
+
+.empty{ text-align:center; padding:30px 10px; color:var(--text-dim); font-size:13px; }
+
+.toast{
+  position:fixed; bottom:88px; right:20px; background:var(--text); color:var(--bg);
+  padding:12px 18px; border-radius:12px; font-size:13px; font-weight:600; z-index:999;
+  opacity:0; transform:translateY(10px); transition:all .25s; pointer-events:none;
+}
+.toast.show{ opacity:1; transform:translateY(0); }
+
+.modal-bg{
+  position:fixed; inset:0; background:rgba(20,40,30,.45); display:none; align-items:center; justify-content:center; z-index:900; padding:20px;
+}
+.modal-bg.show{ display:flex; }
+.modal{
+  background:var(--bg-elev); border-radius:22px; border:1px solid var(--border); padding:22px; width:100%; max-width:420px;
+  max-height:86vh; overflow-y:auto;
+}
+.modal h3{ font-size:16px; font-weight:800; margin-bottom:16px; }
+
+.login-wrap{ min-height:100vh; display:flex; align-items:center; justify-content:center; padding:20px; background:var(--bg); }
+.login-box{ width:100%; max-width:360px; background:var(--bg-elev); padding:32px 28px; border-radius:24px; box-shadow:var(--shadow); border:1px solid var(--border); }
+.login-box .icon-badge{ width:52px; height:52px; border-radius:18px; margin:0 auto 16px; }
+.login-box .icon-badge svg{ width:26px; height:26px; }
+.login-box h1{ text-align:center; font-size:19px; font-weight:800; margin-bottom:4px; }
+.login-box .sub{ text-align:center; font-size:13px; color:var(--text-dim); margin-bottom:24px; }
+.err-msg{ color:var(--danger); font-size:12px; margin-top:6px; min-height:14px; }
+
+.vote-grid{ display:flex; flex-wrap:wrap; gap:10px; }
+.vote-card{ border:1px solid var(--border); border-radius:16px; padding:12px 14px; width:170px; background:var(--bg-elev2); }
+.vote-card .name{ font-weight:700; font-size:13px; margin-bottom:8px; }
+.ox-btns{ display:flex; gap:6px; }
+.ox-btns button{ flex:1; padding:8px 0; border-radius:10px; font-weight:800; font-size:13px; border:1px solid var(--border); background:var(--bg-elev); }
+.ox-btns button.o.sel{ background:var(--green-600); color:#fff; border-color:var(--green-600); }
+.ox-btns button.x.sel{ background:var(--danger); color:#fff; border-color:var(--danger); }
+
+/* ---------- Bottom tab bar (모바일) ---------- */
+.bottom-nav{ display:none; }
+@media(max-width:760px){
+  .sidebar{ display:none; }
+  .main{ padding:20px 16px 96px; }
+  .bottom-nav{
+    display:flex; position:fixed; bottom:0; left:0; right:0; background:var(--bg-elev);
+    border-top:1px solid var(--border); padding:8px 4px calc(8px + env(safe-area-inset-bottom));
+    z-index:500; box-shadow:0 -4px 14px rgba(0,0,0,.05);
+  }
+  .bottom-nav button{
+    flex:1; display:flex; flex-direction:column; align-items:center; gap:3px; font-size:10.5px;
+    color:var(--gray-text); font-weight:600; padding:4px 0; position:relative;
+  }
+  .bottom-nav button.active{ color:var(--green-600); }
+  .bottom-nav button svg{ width:20px; height:20px; }
+  .bottom-nav .bnbadge{
+    position:absolute; top:-1px; right:calc(50% - 16px); background:var(--danger); color:#fff; font-size:9px; font-weight:800;
+    min-width:14px; height:14px; border-radius:99px; display:flex; align-items:center; justify-content:center; padding:0 3px;
+  }
+}
+
+.hidden{ display:none !important; }
+::-webkit-scrollbar{ width:8px; height:8px; } ::-webkit-scrollbar-thumb{ background:var(--border); border-radius:8px; }
+</style>
+</head>
+<body>
+
+<!-- ============ LOGIN ============ -->
+<div class="login-wrap" id="loginScreen">
+  <div class="login-box">
+    <div class="icon-badge"><svg viewBox="0 0 24 24" fill="none" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></div>
+    <h1 id="loginTitle">1인1역 관리 시스템</h1>
+    <div class="sub" id="loginSub">이름과 비밀번호로 로그인하세요</div>
+    <div class="field"><label>이름</label><input id="loginName" placeholder="이름 입력"></div>
+    <div class="field"><label>비밀번호</label><input id="loginPw" type="password" placeholder="비밀번호 입력"></div>
+    <button class="btn" style="width:100%; justify-content:center;" id="loginBtn" onclick="handleLogin()">로그인</button>
+    <div class="err-msg" id="loginErr"></div>
+  </div>
+</div>
+
+<!-- ============ SETUP (최초 관리자 생성) ============ -->
+<div class="login-wrap hidden" id="setupScreen">
+  <div class="login-box">
+    <div class="icon-badge"><svg viewBox="0 0 24 24" fill="none" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg></div>
+    <h1>최초 전체관리자 계정 생성</h1>
+    <div class="sub">아직 계정이 없어요. 첫 관리자 계정을 만들어주세요</div>
+    <div class="field"><label>이름</label><input id="setupName" placeholder="이름 입력"></div>
+    <div class="field"><label>비밀번호</label><input id="setupPw" type="password" placeholder="비밀번호 입력"></div>
+    <button class="btn" style="width:100%; justify-content:center;" onclick="handleSetup()">관리자 계정 만들기</button>
+    <div class="err-msg" id="setupErr"></div>
+  </div>
+</div>
+
+<!-- ============ APP ============ -->
+<div class="app" id="app">
+  <div class="sidebar">
+    <div class="brand">
+      <div class="icon-badge"><svg viewBox="0 0 24 24" fill="none" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></div>
+      <div class="brand-text">1인1역</div>
+    </div>
+    <div id="navItems"></div>
+    <div class="sidebar-foot">
+      <div class="theme-toggle">
+        <button data-theme-btn="light" onclick="setTheme('light')">라이트</button>
+        <button data-theme-btn="dark" onclick="setTheme('dark')">다크</button>
+        <button data-theme-btn="system" onclick="setTheme('system')">시스템</button>
+      </div>
+      <div class="user-chip"><span class="dot"></span><span id="userChipName"></span></div>
+      <button class="btn ghost small" style="width:100%; justify-content:center;" onclick="handleLogout()">로그아웃</button>
+    </div>
+  </div>
+  <div class="main">
+    <div class="topbar">
+      <div>
+        <h1 id="pageTitle">대시보드</h1>
+        <div class="sub" id="pageSub"></div>
+      </div>
+      <div id="topbarActions"></div>
+    </div>
+    <div id="pageContent"></div>
+  </div>
+  <div class="bottom-nav" id="bottomNav"></div>
+</div>
+
+<div class="toast" id="toast"></div>
+<div class="modal-bg" id="modalBg"><div class="modal" id="modalBody"></div></div>
+
+<!-- Firebase (compat) -->
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-database-compat.js"></script>
+<script>
+/* =========================================================
+   1인1역 관리 시스템 - app.js
+   ---------------------------------------------------------
+   ⚠️ firebaseConfig 는 플레이스홀더입니다.
+   Firebase 콘솔 > 프로젝트 설정 > 일반 탭에서 config 복사해서
+   아래 firebaseConfig 객체를 교체하세요. (Realtime Database 사용)
+   ========================================================= */
+
+const firebaseConfig = {
+  apiKey: "AIzaSyAbmpRUvrDbPdRASWNXv2N3DlDMWiUf7VA",
+  authDomain: "theclaeyongkr.firebaseapp.com",
+  databaseURL: "https://theclaeyongkr-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "theclaeyongkr",
+  storageBucket: "theclaeyongkr.firebasestorage.app",
+  messagingSenderId: "465244053974",
+  appId: "1:465244053974:web:a24aa3e7defcb5b371c477",
+  measurementId: "G-NDQN8313JV"
+};
+
+let db = null;
+let auth = null;
+let dbReady = false;
+
+try {
+  firebase.initializeApp(firebaseConfig);
+  db = firebase.database();
+  auth = firebase.auth();
+  dbReady = true;
+} catch (e) {
+  console.warn("Firebase 초기화 실패 (config를 아직 안 넣었으면 정상입니다):", e);
+}
+
+/* ---------------- 로컬 캐시 (실시간 동기화 됨) ---------------- */
+const cache = {
+  users: {},               // uid -> {name, password, systemRole, createdAt}
+  duties: {},              // dutyId -> {title, color, memberIds:{}, managerIds:{}, checkTargets:{}}
+  periods: {},             // periodId -> {label, type, active, createdAt}
+  completions: {},         // periodId -> dutyId -> uid -> {done, checkedBy, checkedAt}
+  votes: {},               // periodId -> targetUid -> voterUid -> 'O'|'X'
+  grades: {},              // periodId -> uid -> {autoGrade, finalGrade, overridden}
+  complaintCategories: {}, // catId -> {title, color}
+  complaints: {},          // id -> {categoryId, title, content, targetUid, submittedBy, status, createdAt}
+  settings: { currentPeriodId: null, voteCycle: 'weekly' }
+};
+
+let currentUser = null;   // {uid, name, systemRole}
+let currentPage = 'dashboard';
+
+/* ================= INIT ================= */
+window.addEventListener('DOMContentLoaded', init);
+
+function init() {
+  applyTheme(localStorage.getItem('theme') || 'system');
+
+  if (!dbReady) {
+    document.getElementById('loginErr').textContent =
+      'Firebase 연결이 아직 안 되어 있어요. app.js 상단 firebaseConfig를 채워주세요.';
+    return;
+  }
+
+  // RTDB 규칙이 "auth != null"을 요구하므로, 접속하자마자 익명 로그인부터 진행
+  auth.signInAnonymously().catch(e => {
+    console.error('익명 로그인 실패:', e);
+    document.getElementById('loginErr').textContent =
+      'Firebase 인증 연결에 실패했어요. 콘솔 > Authentication > Sign-in method에서 "익명" 로그인을 켰는지 확인해줘.';
+  });
+
+  auth.onAuthStateChanged(user => {
+    if (user) {
+      attachRealtimeListeners();
+      tryRestoreSession();
+    }
+  });
+}
+
+function attachRealtimeListeners() {
+  if (!dbReady) return;
+  const paths = ['users', 'duties', 'periods', 'completions', 'votes', 'grades', 'complaintCategories', 'complaints', 'settings'];
+  paths.forEach(path => {
+    db.ref(path).on('value', snap => {
+      const val = snap.val() || (path === 'settings' ? { currentPeriodId: null, voteCycle: 'weekly' } : {});
+      cache[path] = val;
+      afterCacheUpdate(path);
+    });
+  });
+}
+
+function afterCacheUpdate(path) {
+  // 최초 로드 후 setup/login 화면 여부 판단
+  if (path === 'users') {
+    const hasUsers = Object.keys(cache.users || {}).length > 0;
+    if (!currentUser) {
+      document.getElementById('setupScreen').classList.toggle('hidden', hasUsers);
+      document.getElementById('loginScreen').classList.toggle('hidden', !hasUsers);
+    }
+  }
+  if (currentUser) renderPage(currentPage);
+}
+
+function tryRestoreSession() {
+  const saved = JSON.parse(localStorage.getItem('session') || 'null');
+  if (saved && saved.uid) {
+    // users 로드를 약간 기다렸다가 검증
+    setTimeout(() => {
+      const u = cache.users[saved.uid];
+      if (u) {
+        currentUser = { uid: saved.uid, name: u.name, systemRole: u.systemRole };
+        enterApp();
+      }
+    }, 400);
+  }
+}
+
+/* ================= AUTH ================= */
+function handleSetup() {
+  const name = document.getElementById('setupName').value.trim();
+  const pw = document.getElementById('setupPw').value;
+  const errEl = document.getElementById('setupErr');
+  errEl.textContent = '';
+  if (!dbReady) { errEl.textContent = 'Firebase 설정이 필요해요 (app.js 상단 참고)'; return; }
+  if (!name || !pw) { errEl.textContent = '이름과 비밀번호를 모두 입력해줘'; return; }
+  if (pw.length < 4) { errEl.textContent = '비밀번호는 4자 이상으로 해줘'; return; }
+
+  const uid = db.ref('users').push().key;
+  db.ref('users/' + uid).set({
+    name, password: pw, systemRole: 'admin', createdAt: Date.now()
+  }).then(() => {
+    currentUser = { uid, name, systemRole: 'admin' };
+    localStorage.setItem('session', JSON.stringify({ uid }));
+    enterApp();
+  }).catch(e => errEl.textContent = '생성 실패: ' + e.message);
+}
+
+function handleLogin() {
+  const name = document.getElementById('loginName').value.trim();
+  const pw = document.getElementById('loginPw').value;
+  const errEl = document.getElementById('loginErr');
+  errEl.textContent = '';
+  if (!dbReady) { errEl.textContent = 'Firebase 설정이 필요해요 (app.js 상단 참고)'; return; }
+  if (!name || !pw) { errEl.textContent = '이름과 비밀번호를 입력해줘'; return; }
+
+  const entry = Object.entries(cache.users || {}).find(([id, u]) => u.name === name && u.password === pw);
+  if (!entry) { errEl.textContent = '이름 또는 비밀번호가 맞지 않아'; return; }
+
+  const [uid, u] = entry;
+  currentUser = { uid, name: u.name, systemRole: u.systemRole };
+  localStorage.setItem('session', JSON.stringify({ uid }));
+  enterApp();
+}
+
+function handleLogout() {
+  currentUser = null;
+  localStorage.removeItem('session');
+  document.getElementById('app').classList.remove('active');
+  document.getElementById('loginScreen').classList.remove('hidden');
+  document.getElementById('loginName').value = '';
+  document.getElementById('loginPw').value = '';
+}
+
+function enterApp() {
+  document.getElementById('loginScreen').classList.add('hidden');
+  document.getElementById('setupScreen').classList.add('hidden');
+  document.getElementById('app').classList.add('active');
+  document.getElementById('userChipName').textContent =
+    currentUser.name + (currentUser.systemRole === 'admin' ? ' · 전체관리자' : '');
+  syncThemeButtons();
+  buildNav();
+  renderPage('dashboard');
+}
+
+/* ================= THEME ================= */
+function setTheme(mode) {
+  localStorage.setItem('theme', mode);
+  applyTheme(mode);
+  syncThemeButtons();
+}
+function applyTheme(mode) {
+  let actual = mode;
+  if (mode === 'system') {
+    actual = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  }
+  if (actual === 'dark') document.documentElement.setAttribute('data-theme', 'dark');
+  else document.documentElement.removeAttribute('data-theme');
+}
+function syncThemeButtons() {
+  const mode = localStorage.getItem('theme') || 'system';
+  document.querySelectorAll('[data-theme-btn]').forEach(b => {
+    b.classList.toggle('active', b.dataset.themeBtn === mode);
+  });
+}
+
+/* ================= HELPERS ================= */
+function isAdmin() { return currentUser && currentUser.systemRole === 'admin'; }
+function isManagerOfAny() {
+  return Object.values(cache.duties || {}).some(d => d.managerIds && d.managerIds[currentUser.uid]);
+}
+function myManagedDuties() {
+  return Object.entries(cache.duties || {}).filter(([id, d]) => d.managerIds && d.managerIds[currentUser.uid]);
+}
+function userName(uid) { return (cache.users[uid] && cache.users[uid].name) || '(삭제된 사용자)'; }
+function currentPeriodId() { return cache.settings.currentPeriodId; }
+function currentPeriod() { const id = currentPeriodId(); return id ? cache.periods[id] : null; }
+function newKey(path) { return db.ref(path).push().key; }
+function toast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(t._timer);
+  t._timer = setTimeout(() => t.classList.remove('show'), 2200);
+}
+function openModal(html) {
+  document.getElementById('modalBody').innerHTML = html;
+  document.getElementById('modalBg').classList.add('show');
+}
+function closeModal() { document.getElementById('modalBg').classList.remove('show'); }
+document.addEventListener('click', e => { if (e.target.id === 'modalBg') closeModal(); });
+function esc(s) { return (s || '').toString().replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
+
+function computeAutoGrade(oCount, total) {
+  if (total === 0) return null;
+  const ratio = oCount / total;
+  if (ratio >= 0.9) return 'A';
+  if (ratio >= 0.75) return 'B';
+  if (ratio >= 0.5) return 'C';
+  return 'D';
+}
+
+/* ================= NAV ================= */
+const NAV_ICONS = {
+  dashboard: '<path d="M3 13h8V3H3v10zM13 21h8V11h-8v10zM13 3v6h8V3h-8zM3 21h8v-6H3v6z"/>',
+  accounts: '<circle cx="9" cy="7" r="4"/><path d="M2 21v-2a5 5 0 0 1 5-5h4a5 5 0 0 1 5 5v2"/><path d="M17 11a4 4 0 0 0 0-8"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/>',
+  duties: '<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18M8 4v-1M16 4v-1"/>',
+  checks: '<path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>',
+  vote: '<path d="M9 12l2 2 4-4"/><circle cx="12" cy="12" r="10"/>',
+  grades: '<path d="M12 20v-6M6 20V10M18 20V4"/>',
+  complaints: '<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>',
+  settings: '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.87l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.7 1.7 0 0 0-1.87-.34 1.7 1.7 0 0 0-1 1.55V21a2 2 0 0 1-4 0v-.09A1.7 1.7 0 0 0 9 19.4a1.7 1.7 0 0 0-1.87.34l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.7 1.7 0 0 0 4.6 15a1.7 1.7 0 0 0-1.55-1H3a2 2 0 0 1 0-4h.09A1.7 1.7 0 0 0 4.6 9a1.7 1.7 0 0 0-.34-1.87l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.7 1.7 0 0 0 9 4.6a1.7 1.7 0 0 0 1-1.55V3a2 2 0 0 1 4 0v.09a1.7 1.7 0 0 0 1 1.55 1.7 1.7 0 0 0 1.87-.34l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.7 1.7 0 0 0 19.4 9a1.7 1.7 0 0 0 1.55 1H21a2 2 0 0 1 0 4h-.09a1.7 1.7 0 0 0-1.51 1z"/>',
+  me: '<circle cx="12" cy="8" r="4"/><path d="M4 21v-1a6 6 0 0 1 6-6h4a6 6 0 0 1 6 6v1"/>'
+};
+
+function navBadgeCount(id) {
+  const pid = currentPeriodId();
+  if (id === 'checks') {
+    if (!pid) return 0;
+    let count = 0;
+    myManagedDuties().forEach(([dutyId, d]) => {
+      const src = (d.checkTargets && Object.keys(d.checkTargets).length) ? d.checkTargets : (d.memberIds || {});
+      Object.keys(src).forEach(uid => {
+        const c = (((cache.completions[pid] || {})[dutyId] || {})[uid]) || {};
+        if (!c.done) count++;
+      });
+    });
+    return count;
+  }
+  if (id === 'vote') {
+    if (!pid) return 0;
+    const others = Object.keys(cache.users || {}).filter(uid => uid !== currentUser.uid);
+    const votedCount = others.filter(uid => {
+      const v = (cache.votes[pid] || {})[uid] || {};
+      return !!v[currentUser.uid];
+    }).length;
+    return others.length - votedCount;
+  }
+  if (id === 'complaints') {
+    if (!isAdmin()) return 0;
+    return Object.values(cache.complaints || {}).filter(c => c.status === 'pending').length;
+  }
+  return 0;
+}
+
+function navItemsList() {
+  const items = [{ id: 'dashboard', label: '대시보드' }];
+  if (isManagerOfAny()) items.push({ id: 'checks', label: '임무 확인' });
+  items.push({ id: 'vote', label: '주간 투표' });
+  items.push({ id: 'complaints', label: '민원' });
+  if (isAdmin()) {
+    items.push({ id: 'accounts', label: '계정 관리' });
+    items.push({ id: 'duties', label: '1인1역 관리' });
+    items.push({ id: 'grades', label: '등급 관리' });
+    items.push({ id: 'settings', label: '설정' });
+  }
+  return items;
+}
+
+function buildNav() {
+  const items = navItemsList();
+  const nav = document.getElementById('navItems');
+  nav.innerHTML = items.map(it => {
+    const count = navBadgeCount(it.id);
+    return `
+    <button class="nav-item" data-nav="${it.id}" onclick="renderPage('${it.id}')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${NAV_ICONS[it.id]}</svg>
+      ${it.label}
+      ${count > 0 ? `<span class="badge" style="background:var(--danger);color:#fff;margin-left:auto;">${count}</span>` : ''}
+    </button>`;
+  }).join('');
+
+  // 모바일 하단 탭바: 대표 5개까지만 노출
+  const bottomItems = items.slice(0, 5);
+  const bn = document.getElementById('bottomNav');
+  if (bn) {
+    bn.innerHTML = bottomItems.map(it => {
+      const count = navBadgeCount(it.id);
+      return `
+      <button data-nav-b="${it.id}" onclick="renderPage('${it.id}')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${NAV_ICONS[it.id]}</svg>
+        ${it.label}
+        ${count > 0 ? `<span class="bnbadge">${count}</span>` : ''}
+      </button>`;
+    }).join('');
+  }
+}
+
+function setActiveNav(id) {
+  document.querySelectorAll('.nav-item').forEach(b => b.classList.toggle('active', b.dataset.nav === id));
+  document.querySelectorAll('[data-nav-b]').forEach(b => b.classList.toggle('active', b.dataset.navB === id));
+}
+
+/* ================= ROUTER ================= */
+function renderPage(id) {
+  currentPage = id;
+  buildNav();
+  setActiveNav(id);
+  document.getElementById('topbarActions').innerHTML = '';
+  const titleMap = {
+    dashboard: ['대시보드', '전체 현황을 한눈에 확인해요'],
+    accounts: ['계정 관리', '멤버 계정을 생성하고 관리해요'],
+    duties: ['1인1역 관리', '역할을 만들고 멤버·관리자를 배정해요'],
+    checks: ['임무 확인', '담당 멤버들의 임무 완료 여부를 체크해요'],
+    vote: ['주간 투표', '이번 주기 동료 평가에 참여해요'],
+    grades: ['등급 관리', '주기별 O/X 결과와 등급을 확인·수정해요'],
+    complaints: ['민원', '민원을 제기하거나 처리해요'],
+    settings: ['설정', '투표 주기와 민원 카테고리를 관리해요']
+  };
+  const [title, sub] = titleMap[id] || ['', ''];
+  document.getElementById('pageTitle').textContent = title;
+  document.getElementById('pageSub').textContent = sub;
+
+  const renderers = {
+    dashboard: renderDashboard, accounts: renderAccounts, duties: renderDuties,
+    checks: renderChecks, vote: renderVote, grades: renderGrades,
+    complaints: renderComplaints, settings: renderSettings
+  };
+  (renderers[id] || renderDashboard)();
+}
+
+/* ================= DASHBOARD ================= */
+function renderDashboard() {
+  const pid = currentPeriodId();
+  const period = currentPeriod();
+  const pendingComplaints = Object.values(cache.complaints || {}).filter(c => c.status === 'pending').length;
+
+  // 히어로 카드: 이번 주기에 내가 받은 O 개수
+  let oCount = 0, totalVotes = 0;
+  if (pid) {
+    const votesForMe = (cache.votes[pid] || {})[currentUser.uid] || {};
+    const vals = Object.values(votesForMe);
+    totalVotes = vals.length;
+    oCount = vals.filter(v => v === 'O').length;
+  }
+  let myGrade = null;
+  if (pid && cache.grades[pid] && cache.grades[pid][currentUser.uid]) {
+    const g = cache.grades[pid][currentUser.uid];
+    myGrade = g.finalGrade || g.autoGrade;
+  }
+
+  // 안내 카드: 오늘 해야 할 일 총량
+  const checksBadge = navBadgeCount('checks');
+  const voteBadge = navBadgeCount('vote');
+  const todoCount = checksBadge + voteBadge + (isAdmin() ? pendingComplaints : 0);
+
+  // 타일: 주요 메뉴 바로가기
+  const tileDefs = [
+    { id: 'vote', label: '주간 투표' },
+    { id: 'complaints', label: '민원' },
+  ];
+  if (isManagerOfAny()) tileDefs.unshift({ id: 'checks', label: '임무 확인' });
+  if (isAdmin()) {
+    tileDefs.push({ id: 'accounts', label: '계정 관리' }, { id: 'duties', label: '1인1역 관리' }, { id: 'grades', label: '등급 관리' }, { id: 'settings', label: '설정' });
+  }
+
+  // 체크리스트: 내가 관리하는 1인1역 대상자들의 완료 현황 (관리자 있을 때만), 없으면 이번 주기 투표 현황
+  let listHtml = '';
+  let listTitle = '';
+  let listDone = 0, listTotal = 0;
+  if (isManagerOfAny() && pid) {
+    const rows = [];
+    myManagedDuties().forEach(([dutyId, d]) => {
+      const src = (d.checkTargets && Object.keys(d.checkTargets).length) ? d.checkTargets : (d.memberIds || {});
+      Object.keys(src).forEach(uid => {
+        const c = (((cache.completions[pid] || {})[dutyId] || {})[uid]) || {};
+        rows.push({ name: userName(uid), done: !!c.done, sub: d.title });
+      });
+    });
+    listTitle = '내가 확인할 목록';
+    listTotal = rows.length; listDone = rows.filter(r => r.done).length;
+    listHtml = rows.length ? rows.map(r => `
+      <div class="list-item">
+        <span class="ldot" style="background:${r.done ? 'var(--green-500)' : 'var(--danger)'}"></span>
+        <span class="lname">${esc(r.name)} <span style="color:var(--text-dim);font-weight:400;font-size:11.5px;">· ${esc(r.sub)}</span></span>
+        <span class="badge ${r.done ? 'resolved' : 'pending'}">${r.done ? '완료' : '대기'}</span>
+      </div>`).join('') : `<div class="empty">확인할 대상자가 없어요</div>`;
+  } else if (pid) {
+    const others = Object.entries(cache.users || {}).filter(([uid]) => uid !== currentUser.uid);
+    listTitle = '이번 주기 내 투표 현황';
+    listTotal = others.length;
+    listDone = others.filter(([uid]) => ((cache.votes[pid] || {})[uid] || {})[currentUser.uid]).length;
+    listHtml = others.length ? others.map(([uid, u]) => {
+      const voted = !!((cache.votes[pid] || {})[uid] || {})[currentUser.uid];
+      return `<div class="list-item">
+        <span class="ldot" style="background:${voted ? 'var(--green-500)' : 'var(--danger)'}"></span>
+        <span class="lname">${esc(u.name)}</span>
+        <span class="badge ${voted ? 'resolved' : 'pending'}">${voted ? '투표완료' : '대기'}</span>
+      </div>`;
+    }).join('') : `<div class="empty">투표할 멤버가 없어요</div>`;
+  }
+
+  document.getElementById('pageContent').innerHTML = `
+    <div class="hero-card">
+      <div class="hlabel">이번 주기 받은 O ${period ? '· ' + esc(period.label) : ''}</div>
+      <div class="hval"><span class="hicon">🌱</span>${pid ? oCount : '-'}${pid ? `<span style="font-size:14px;font-weight:600;opacity:.85;">/ ${totalVotes}표</span>` : ''}</div>
+    </div>
+    ${todoCount > 0 ? `
+    <div class="notice-card">
+      <span class="nemoji">📌</span>
+      <div>
+        <div class="ntitle">할 일이 있어요!</div>
+        <div class="nsub">확인이 필요한 항목 <span class="npill">${todoCount}</span></div>
+      </div>
+    </div>` : `
+    <div class="notice-card" style="background:linear-gradient(135deg,var(--green-500),var(--green-700));">
+      <span class="nemoji">🎉</span>
+      <div>
+        <div class="ntitle">오늘 할 일 다 끝냈어요</div>
+        <div class="nsub">여유롭게 둘러봐도 좋아요</div>
+      </div>
+    </div>`}
+    <div class="tile-grid">
+      ${tileDefs.map(t => {
+        const c = navBadgeCount(t.id);
+        return `<button class="tile" onclick="renderPage('${t.id}')">
+          ${c > 0 ? `<span class="tbadge">${c}</span>` : ''}
+          <span class="ticon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${NAV_ICONS[t.id]}</svg></span>
+          <span class="tlabel">${t.label}</span>
+        </button>`;
+      }).join('')}
+    </div>
+    ${myGrade ? `
+    <div class="card">
+      <h2>내 이번 주기 등급</h2>
+      <span class="badge grade-${myGrade}" style="font-size:14px;padding:6px 14px;">${myGrade}</span>
+    </div>` : ''}
+    ${!pid ? `<div class="card"><div class="empty">아직 활성화된 주기가 없어요.${isAdmin() ? ' 설정 탭에서 만들어봐.' : ''}</div></div>` : `
+    <div class="card">
+      <h2>${listTitle} ${listTotal ? `<span style="color:var(--text-dim);font-weight:600;font-size:13px;">${listDone}/${listTotal}</span>` : ''}</h2>
+      ${listHtml}
+    </div>`}
+  `;
+}
+
+/* ================= ACCOUNTS (admin) ================= */
+function renderAccounts() {
+  if (!isAdmin()) return renderNoAccess();
+  document.getElementById('topbarActions').innerHTML = `<button class="btn" onclick="openCreateAccountModal()">+ 계정 생성</button>`;
+  const rows = Object.entries(cache.users || {}).sort((a, b) => (a[1].createdAt || 0) - (b[1].createdAt || 0));
+  document.getElementById('pageContent').innerHTML = `
+    <div class="card">
+      <table>
+        <thead><tr><th>이름</th><th>권한</th><th>가입일</th><th></th></tr></thead>
+        <tbody>
+        ${rows.length ? rows.map(([uid, u]) => `
+          <tr>
+            <td>${esc(u.name)}${uid === currentUser.uid ? ' <span style="color:var(--text-dim);font-size:11px;">(나)</span>' : ''}</td>
+            <td>${u.systemRole === 'admin' ? '<span class="badge grade-A">전체관리자</span>' : '<span class="badge" style="background:var(--text-dim)">멤버</span>'}</td>
+            <td style="color:var(--text-dim);font-size:12px;">${u.createdAt ? new Date(u.createdAt).toLocaleDateString('ko-KR') : '-'}</td>
+            <td>
+              <button class="btn ghost small" onclick="toggleAdmin('${uid}')">${u.systemRole === 'admin' ? '관리자 해제' : '관리자 지정'}</button>
+              ${uid !== currentUser.uid ? `<button class="btn danger small" onclick="deleteAccount('${uid}')">삭제</button>` : ''}
+            </td>
+          </tr>`).join('') : `<tr><td colspan="4" class="empty">계정이 없어요</td></tr>`}
+        </tbody>
+      </table>
+    </div>`;
+}
+
+function openCreateAccountModal() {
+  openModal(`
+    <h3>계정 생성</h3>
+    <div class="field"><label>이름</label><input id="mAccName" placeholder="이름"></div>
+    <div class="field"><label>비밀번호</label><input id="mAccPw" type="password" placeholder="비밀번호 (4자 이상)"></div>
+    <div class="field"><label>권한</label>
+      <select id="mAccRole"><option value="user">멤버</option><option value="admin">전체관리자</option></select>
+    </div>
+    <div class="err-msg" id="mAccErr"></div>
+    <div class="row" style="justify-content:flex-end; margin-top:8px;">
+      <button class="btn ghost" onclick="closeModal()">취소</button>
+      <button class="btn" onclick="submitCreateAccount()">생성</button>
+    </div>`);
+}
+function submitCreateAccount() {
+  const name = document.getElementById('mAccName').value.trim();
+  const pw = document.getElementById('mAccPw').value;
+  const role = document.getElementById('mAccRole').value;
+  const errEl = document.getElementById('mAccErr');
+  if (!name || !pw) { errEl.textContent = '이름과 비밀번호를 입력해줘'; return; }
+  if (pw.length < 4) { errEl.textContent = '비밀번호는 4자 이상'; return; }
+  if (Object.values(cache.users).some(u => u.name === name)) { errEl.textContent = '이미 있는 이름이야'; return; }
+  const uid = newKey('users');
+  db.ref('users/' + uid).set({ name, password: pw, systemRole: role, createdAt: Date.now() })
+    .then(() => { toast('계정을 만들었어'); closeModal(); });
+}
+function toggleAdmin(uid) {
+  const u = cache.users[uid];
+  db.ref('users/' + uid + '/systemRole').set(u.systemRole === 'admin' ? 'user' : 'admin')
+    .then(() => toast('권한을 변경했어'));
+}
+function deleteAccount(uid) {
+  if (!confirm(userName(uid) + ' 계정을 삭제할까?')) return;
+  db.ref('users/' + uid).remove().then(() => toast('삭제했어'));
+}
+
+function renderNoAccess() {
+  document.getElementById('pageContent').innerHTML = `<div class="card"><div class="empty">접근 권한이 없어요</div></div>`;
+}
+
+/* ================= DUTIES (1인1역 관리, admin) ================= */
+function renderDuties() {
+  if (!isAdmin()) return renderNoAccess();
+  document.getElementById('topbarActions').innerHTML = `<button class="btn" onclick="openCreateDutyModal()">+ 1인1역 만들기</button>`;
+  const duties = Object.entries(cache.duties || {});
+  document.getElementById('pageContent').innerHTML = duties.length ? duties.map(([id, d]) => `
+    <div class="card">
+      <h2><span class="chip-color" style="background:${d.color}"></span>${esc(d.title)}
+        <button class="btn ghost small" style="margin-left:auto;" onclick="openEditDutyModal('${id}')">편집</button>
+        <button class="btn danger small" onclick="deleteDuty('${id}')">삭제</button>
+      </h2>
+      <div class="grid3">
+        <div>
+          <div style="font-size:12px;font-weight:700;color:var(--text-dim);margin-bottom:6px;">멤버 (${Object.keys(d.memberIds || {}).length})</div>
+          ${renderTagList(d.memberIds, id, 'memberIds')}
+          ${renderAssignBtn(id, 'memberIds', '멤버 추가')}
+        </div>
+        <div>
+          <div style="font-size:12px;font-weight:700;color:var(--text-dim);margin-bottom:6px;">1인1역 관리자 (${Object.keys(d.managerIds || {}).length})</div>
+          ${renderTagList(d.managerIds, id, 'managerIds')}
+          ${renderAssignBtn(id, 'managerIds', '관리자 추가')}
+        </div>
+        <div>
+          <div style="font-size:12px;font-weight:700;color:var(--text-dim);margin-bottom:6px;">확인 대상자 (${Object.keys(d.checkTargets || {}).length})</div>
+          ${renderTagList(d.checkTargets, id, 'checkTargets')}
+          ${renderAssignBtn(id, 'checkTargets', '대상자 추가')}
+        </div>
+      </div>
+    </div>
+  `).join('') : `<div class="card"><div class="empty">아직 만든 1인1역이 없어요</div></div>`;
+}
+function renderTagList(map, dutyId, field) {
+  const ids = Object.keys(map || {});
+  if (!ids.length) return `<div style="color:var(--text-dim);font-size:12px;margin-bottom:6px;">없음</div>`;
+  return `<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;">
+    ${ids.map(uid => `<span class="badge" style="background:var(--bg-elev2);color:var(--text);border:1px solid var(--border);">
+      ${esc(userName(uid))}
+      <button style="margin-left:4px;color:var(--danger);font-weight:900;" onclick="removeFromDuty('${dutyId}','${field}','${uid}')">×</button>
+    </span>`).join('')}
+  </div>`;
+}
+function renderAssignBtn(dutyId, field, label) {
+  return `<button class="btn ghost small" onclick="openAssignModal('${dutyId}','${field}','${label}')">${label}</button>`;
+}
+function openCreateDutyModal() {
+  openModal(`
+    <h3>1인1역 만들기</h3>
+    <div class="field"><label>타이틀</label><input id="mDutyTitle" placeholder="예: 칠판 관리"></div>
+    <div class="field"><label>색상</label><input id="mDutyColor" type="color" value="#16a34a"></div>
+    <div class="row" style="justify-content:flex-end;">
+      <button class="btn ghost" onclick="closeModal()">취소</button>
+      <button class="btn" onclick="submitCreateDuty()">만들기</button>
+    </div>`);
+}
+function submitCreateDuty() {
+  const title = document.getElementById('mDutyTitle').value.trim();
+  const color = document.getElementById('mDutyColor').value;
+  if (!title) { toast('타이틀을 입력해줘'); return; }
+  const id = newKey('duties');
+  db.ref('duties/' + id).set({ title, color, memberIds: {}, managerIds: {}, checkTargets: {} })
+    .then(() => { toast('1인1역을 만들었어'); closeModal(); });
+}
+function openEditDutyModal(id) {
+  const d = cache.duties[id];
+  openModal(`
+    <h3>1인1역 편집</h3>
+    <div class="field"><label>타이틀</label><input id="mDutyTitle2" value="${esc(d.title)}"></div>
+    <div class="field"><label>색상</label><input id="mDutyColor2" type="color" value="${d.color}"></div>
+    <div class="row" style="justify-content:flex-end;">
+      <button class="btn ghost" onclick="closeModal()">취소</button>
+      <button class="btn" onclick="submitEditDuty('${id}')">저장</button>
+    </div>`);
+}
+function submitEditDuty(id) {
+  const title = document.getElementById('mDutyTitle2').value.trim();
+  const color = document.getElementById('mDutyColor2').value;
+  if (!title) { toast('타이틀을 입력해줘'); return; }
+  db.ref('duties/' + id).update({ title, color }).then(() => { toast('저장했어'); closeModal(); });
+}
+function deleteDuty(id) {
+  if (!confirm('이 1인1역을 삭제할까? 관련 체크/투표 기록은 남아있어.')) return;
+  db.ref('duties/' + id).remove().then(() => toast('삭제했어'));
+}
+function openAssignModal(dutyId, field, label) {
+  const d = cache.duties[dutyId];
+  const already = d[field] || {};
+  const options = Object.entries(cache.users || {}).filter(([uid]) => !already[uid]);
+  openModal(`
+    <h3>${label}</h3>
+    ${options.length ? `
+      <select id="mAssignUser">${options.map(([uid, u]) => `<option value="${uid}">${esc(u.name)}</option>`).join('')}</select>
+      <div class="row" style="justify-content:flex-end;margin-top:14px;">
+        <button class="btn ghost" onclick="closeModal()">취소</button>
+        <button class="btn" onclick="submitAssign('${dutyId}','${field}')">추가</button>
+      </div>` : `<div class="empty">추가할 수 있는 사람이 없어</div>`}
+  `);
+}
+function submitAssign(dutyId, field) {
+  const uid = document.getElementById('mAssignUser').value;
+  db.ref(`duties/${dutyId}/${field}/${uid}`).set(true).then(() => { toast('추가했어'); closeModal(); });
+}
+function removeFromDuty(dutyId, field, uid) {
+  db.ref(`duties/${dutyId}/${field}/${uid}`).remove().then(() => toast('제거했어'));
+}
+
+/* ================= CHECKS (1인1역 관리자) ================= */
+function renderChecks() {
+  const managed = myManagedDuties();
+  if (!managed.length) {
+    document.getElementById('pageContent').innerHTML = `<div class="card"><div class="empty">관리 중인 1인1역이 없어요</div></div>`;
+    return;
+  }
+  const pid = currentPeriodId();
+  if (!pid) {
+    document.getElementById('pageContent').innerHTML = `<div class="card"><div class="empty">활성화된 주기가 없어요. 전체관리자가 설정에서 주기를 만들어야 해요.</div></div>`;
+    return;
+  }
+  document.getElementById('pageContent').innerHTML = managed.map(([dutyId, d]) => {
+    const targets = Object.keys(d.checkTargets && Object.keys(d.checkTargets).length ? d.checkTargets : d.memberIds || {});
+    return `
+    <div class="card">
+      <h2><span class="chip-color" style="background:${d.color}"></span>${esc(d.title)}</h2>
+      <table>
+        <thead><tr><th>멤버</th><th>임무 완료</th></tr></thead>
+        <tbody>
+        ${targets.length ? targets.map(uid => {
+          const c = (((cache.completions[pid] || {})[dutyId] || {})[uid]) || {};
+          return `<tr>
+            <td>${esc(userName(uid))}</td>
+            <td>
+              <button class="btn ${c.done ? '' : 'ghost'} small" onclick="toggleCompletion('${dutyId}','${uid}', ${!c.done})">
+                ${c.done ? '✓ 완료됨' : '미완료'}
+              </button>
+            </td>
+          </tr>`;
+        }).join('') : `<tr><td colspan="2" class="empty">확인 대상자가 없어요</td></tr>`}
+        </tbody>
+      </table>
+    </div>`;
+  }).join('');
+}
+function toggleCompletion(dutyId, uid, done) {
+  const pid = currentPeriodId();
+  db.ref(`completions/${pid}/${dutyId}/${uid}`).set({
+    done, checkedBy: currentUser.uid, checkedAt: Date.now()
+  }).then(() => toast(done ? '완료 처리했어' : '미완료로 변경했어'));
+}
+
+/* ================= VOTE (O/X 실명 투표) ================= */
+function renderVote() {
+  const pid = currentPeriodId();
+  if (!pid) {
+    document.getElementById('pageContent').innerHTML = `<div class="card"><div class="empty">활성화된 투표 주기가 없어요</div></div>`;
+    return;
+  }
+  const period = cache.periods[pid];
+  const others = Object.entries(cache.users || {}).filter(([uid]) => uid !== currentUser.uid);
+  const myVotes = (cache.votes[pid] || {});
+
+  document.getElementById('pageContent').innerHTML = `
+    <div class="card">
+      <h2>${esc(period.label)} 투표 (실명)</h2>
+      <div style="font-size:12px;color:var(--text-dim);margin-bottom:14px;">각 멤버가 1인1역을 잘 수행했는지 O/X로 평가해줘. 누가 투표했는지 관리자가 볼 수 있어.</div>
+      <div class="vote-grid">
+        ${others.length ? others.map(([uid, u]) => {
+          const my = (myVotes[uid] || {})[currentUser.uid];
+          return `<div class="vote-card">
+            <div class="name">${esc(u.name)}</div>
+            <div class="ox-btns">
+              <button class="o ${my === 'O' ? 'sel' : ''}" onclick="castVote('${uid}','O')">O</button>
+              <button class="x ${my === 'X' ? 'sel' : ''}" onclick="castVote('${uid}','X')">X</button>
+            </div>
+          </div>`;
+        }).join('') : `<div class="empty">투표할 다른 멤버가 없어요</div>`}
+      </div>
+    </div>`;
+}
+function castVote(targetUid, val) {
+  const pid = currentPeriodId();
+  db.ref(`votes/${pid}/${targetUid}/${currentUser.uid}`).set(val)
+    .then(() => { toast('투표했어'); recalcGrade(targetUid); });
+}
+function recalcGrade(targetUid) {
+  const pid = currentPeriodId();
+  const votesForUser = (cache.votes[pid] || {})[targetUid] || {};
+  const vals = Object.values(votesForUser);
+  const oCount = vals.filter(v => v === 'O').length;
+  const auto = computeAutoGrade(oCount, vals.length);
+  const existing = ((cache.grades[pid] || {})[targetUid]) || {};
+  if (existing.overridden) {
+    db.ref(`grades/${pid}/${targetUid}/autoGrade`).set(auto);
+  } else {
+    db.ref(`grades/${pid}/${targetUid}`).set({ autoGrade: auto, finalGrade: auto, overridden: false });
+  }
+}
+
+/* ================= GRADES (admin) ================= */
+function renderGrades() {
+  if (!isAdmin()) return renderNoAccess();
+  const pid = currentPeriodId();
+  if (!pid) {
+    document.getElementById('pageContent').innerHTML = `<div class="card"><div class="empty">활성화된 주기가 없어요. 설정에서 먼저 만들어줘.</div></div>`;
+    return;
+  }
+  const period = cache.periods[pid];
+  const users = Object.entries(cache.users || {});
+  document.getElementById('pageContent').innerHTML = `
+    <div class="card">
+      <h2>${esc(period.label)} 등급표</h2>
+      <table>
+        <thead><tr><th>이름</th><th>O</th><th>X</th><th>비율</th><th>자동등급</th><th>최종등급</th><th></th></tr></thead>
+        <tbody>
+        ${users.map(([uid, u]) => {
+          const votesForUser = (cache.votes[pid] || {})[uid] || {};
+          const vals = Object.values(votesForUser);
+          const oCount = vals.filter(v => v === 'O').length;
+          const xCount = vals.length - oCount;
+          const ratio = vals.length ? Math.round((oCount / vals.length) * 100) : null;
+          const g = ((cache.grades[pid] || {})[uid]) || {};
+          const finalGrade = g.finalGrade || g.autoGrade;
+          return `<tr>
+            <td>${esc(u.name)}</td>
+            <td>${oCount}</td>
+            <td>${xCount}</td>
+            <td>${ratio !== null ? ratio + '%' : '-'}</td>
+            <td>${g.autoGrade ? `<span class="badge grade-${g.autoGrade}">${g.autoGrade}</span>` : '-'}</td>
+            <td>${finalGrade ? `<span class="badge grade-${finalGrade}">${finalGrade}</span>` : '<span class="badge grade-null">미평가</span>'}</td>
+            <td><button class="btn ghost small" onclick="openOverrideModal('${pid}','${uid}')">수정</button></td>
+          </tr>`;
+        }).join('')}
+        </tbody>
+      </table>
+    </div>`;
+}
+function openOverrideModal(pid, uid) {
+  openModal(`
+    <h3>${esc(userName(uid))} 등급 수동 지정</h3>
+    <select id="mGradeSel">
+      <option value="">자동값 사용</option>
+      <option value="A">A</option><option value="B">B</option><option value="C">C</option><option value="D">D</option>
+    </select>
+    <div class="row" style="justify-content:flex-end;margin-top:14px;">
+      <button class="btn ghost" onclick="closeModal()">취소</button>
+      <button class="btn" onclick="submitOverride('${pid}','${uid}')">저장</button>
+    </div>`);
+}
+function submitOverride(pid, uid) {
+  const val = document.getElementById('mGradeSel').value;
+  const g = ((cache.grades[pid] || {})[uid]) || {};
+  if (val) {
+    db.ref(`grades/${pid}/${uid}`).set({ autoGrade: g.autoGrade || null, finalGrade: val, overridden: true })
+      .then(() => { toast('등급을 수정했어'); closeModal(); });
+  } else {
+    db.ref(`grades/${pid}/${uid}`).set({ autoGrade: g.autoGrade || null, finalGrade: g.autoGrade || null, overridden: false })
+      .then(() => { toast('자동값으로 되돌렸어'); closeModal(); });
+  }
+}
+
+/* ================= COMPLAINTS ================= */
+function renderComplaints() {
+  document.getElementById('topbarActions').innerHTML = `<button class="btn" onclick="openSubmitComplaintModal()">+ 민원 제기</button>`;
+  const list = Object.entries(cache.complaints || {}).sort((a, b) => (b[1].createdAt || 0) - (a[1].createdAt || 0));
+  document.getElementById('pageContent').innerHTML = `
+    <div class="card">
+      <table>
+        <thead><tr><th>카테고리</th><th>제목</th><th>대상</th><th>작성자</th><th>상태</th>${isAdmin() ? '<th></th>' : ''}</tr></thead>
+        <tbody>
+        ${list.length ? list.map(([id, c]) => {
+          const cat = cache.complaintCategories[c.categoryId] || { title: '(삭제됨)', color: '#94a3b8' };
+          return `<tr>
+            <td><span class="chip-color" style="background:${cat.color}"></span>${esc(cat.title)}</td>
+            <td>${esc(c.title)}</td>
+            <td>${c.targetUid ? esc(userName(c.targetUid)) : '-'}</td>
+            <td>${esc(userName(c.submittedBy))}</td>
+            <td><span class="badge ${c.status}">${c.status === 'pending' ? '대기중' : '해결됨'}</span></td>
+            ${isAdmin() ? `<td>${c.status === 'pending' ? `<button class="btn small" onclick="resolveComplaint('${id}')">해결처리</button>` : ''}</td>` : ''}
+          </tr>`;
+        }).join('') : `<tr><td colspan="6" class="empty">민원이 없어요</td></tr>`}
+        </tbody>
+      </table>
+    </div>`;
+}
+function openSubmitComplaintModal() {
+  const cats = Object.entries(cache.complaintCategories || {});
+  if (!cats.length) { toast('민원 카테고리가 아직 없어요. 관리자에게 요청해줘.'); return; }
+  const users = Object.entries(cache.users || {});
+  openModal(`
+    <h3>민원 제기</h3>
+    <div class="field"><label>카테고리</label>
+      <select id="mCplCat">${cats.map(([id, c]) => `<option value="${id}">${esc(c.title)}</option>`).join('')}</select>
+    </div>
+    <div class="field"><label>대상자 (선택)</label>
+      <select id="mCplTarget"><option value="">없음</option>${users.map(([uid, u]) => `<option value="${uid}">${esc(u.name)}</option>`).join('')}</select>
+    </div>
+    <div class="field"><label>제목</label><input id="mCplTitle" placeholder="제목"></div>
+    <div class="field"><label>내용</label><textarea id="mCplContent" rows="4" placeholder="내용을 적어줘"></textarea></div>
+    <div class="row" style="justify-content:flex-end;">
+      <button class="btn ghost" onclick="closeModal()">취소</button>
+      <button class="btn" onclick="submitComplaint()">제출</button>
+    </div>`);
+}
+function submitComplaint() {
+  const categoryId = document.getElementById('mCplCat').value;
+  const targetUid = document.getElementById('mCplTarget').value || null;
+  const title = document.getElementById('mCplTitle').value.trim();
+  const content = document.getElementById('mCplContent').value.trim();
+  if (!title || !content) { toast('제목과 내용을 입력해줘'); return; }
+  const id = newKey('complaints');
+  db.ref('complaints/' + id).set({
+    categoryId, targetUid, title, content, submittedBy: currentUser.uid,
+    status: 'pending', createdAt: Date.now()
+  }).then(() => { toast('민원을 제출했어'); closeModal(); });
+}
+function resolveComplaint(id) {
+  db.ref('complaints/' + id).update({ status: 'resolved', resolvedAt: Date.now(), resolvedBy: currentUser.uid })
+    .then(() => toast('해결처리 했어'));
+}
+
+/* ================= SETTINGS (admin: 주기 + 민원 카테고리) ================= */
+function renderSettings() {
+  if (!isAdmin()) return renderNoAccess();
+  const periods = Object.entries(cache.periods || {}).sort((a, b) => (b[1].createdAt || 0) - (a[1].createdAt || 0));
+  const cats = Object.entries(cache.complaintCategories || {});
+  document.getElementById('pageContent').innerHTML = `
+    <div class="card">
+      <h2>투표 주기 <button class="btn small" style="margin-left:auto;" onclick="openCreatePeriodModal()">+ 새 주기</button></h2>
+      <table>
+        <thead><tr><th>이름</th><th>종류</th><th>상태</th><th></th></tr></thead>
+        <tbody>
+        ${periods.length ? periods.map(([id, p]) => `
+          <tr>
+            <td>${esc(p.label)}</td>
+            <td>${p.type === 'weekly' ? '주간' : '월간'}</td>
+            <td>${id === cache.settings.currentPeriodId ? '<span class="badge grade-A">활성</span>' : '-'}</td>
+            <td>${id === cache.settings.currentPeriodId ? '' : `<button class="btn ghost small" onclick="activatePeriod('${id}')">활성화</button>`}</td>
+          </tr>`).join('') : `<tr><td colspan="4" class="empty">주기가 없어요</td></tr>`}
+        </tbody>
+      </table>
+    </div>
+    <div class="card">
+      <h2>민원 카테고리 <button class="btn small" style="margin-left:auto;" onclick="openCreateCategoryModal()">+ 카테고리</button></h2>
+      <div style="display:flex;flex-wrap:wrap;gap:8px;">
+        ${cats.length ? cats.map(([id, c]) => `
+          <span class="badge" style="background:${c.color}">
+            ${esc(c.title)}
+            <button style="margin-left:6px;font-weight:900;" onclick="deleteCategory('${id}')">×</button>
+          </span>`).join('') : `<div class="empty">카테고리가 없어요</div>`}
+      </div>
+    </div>`;
+}
+function openCreatePeriodModal() {
+  openModal(`
+    <h3>새 주기 만들기</h3>
+    <div class="field"><label>이름</label><input id="mPeriodLabel" placeholder="예: 7월 3주차"></div>
+    <div class="field"><label>종류</label>
+      <select id="mPeriodType"><option value="weekly">주간</option><option value="monthly">월간</option></select>
+    </div>
+    <div class="row" style="justify-content:flex-end;">
+      <button class="btn ghost" onclick="closeModal()">취소</button>
+      <button class="btn" onclick="submitCreatePeriod()">만들고 활성화</button>
+    </div>`);
+}
+function submitCreatePeriod() {
+  const label = document.getElementById('mPeriodLabel').value.trim();
+  const type = document.getElementById('mPeriodType').value;
+  if (!label) { toast('이름을 입력해줘'); return; }
+  const id = newKey('periods');
+  db.ref('periods/' + id).set({ label, type, createdAt: Date.now() })
+    .then(() => db.ref('settings/currentPeriodId').set(id))
+    .then(() => db.ref('settings/voteCycle').set(type))
+    .then(() => { toast('새 주기를 활성화했어'); closeModal(); });
+}
+function activatePeriod(id) {
+  db.ref('settings/currentPeriodId').set(id).then(() => toast('주기를 활성화했어'));
+}
+function openCreateCategoryModal() {
+  openModal(`
+    <h3>민원 카테고리 만들기</h3>
+    <div class="field"><label>타이틀</label><input id="mCatTitle" placeholder="예: 업무 태만"></div>
+    <div class="field"><label>색상</label><input id="mCatColor" type="color" value="#ef4444"></div>
+    <div class="row" style="justify-content:flex-end;">
+      <button class="btn ghost" onclick="closeModal()">취소</button>
+      <button class="btn" onclick="submitCreateCategory()">만들기</button>
+    </div>`);
+}
+function submitCreateCategory() {
+  const title = document.getElementById('mCatTitle').value.trim();
+  const color = document.getElementById('mCatColor').value;
+  if (!title) { toast('타이틀을 입력해줘'); return; }
+  const id = newKey('complaintCategories');
+  db.ref('complaintCategories/' + id).set({ title, color }).then(() => { toast('카테고리를 만들었어'); closeModal(); });
+}
+function deleteCategory(id) {
+  if (!confirm('이 카테고리를 삭제할까?')) return;
+  db.ref('complaintCategories/' + id).remove().then(() => toast('삭제했어'));
+}
+
+</script>
+</body>
+</html>
