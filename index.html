@@ -537,7 +537,8 @@ const NAV_ICONS = {
   complaints: '<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>',
   settings: '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.87l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.7 1.7 0 0 0-1.87-.34 1.7 1.7 0 0 0-1 1.55V21a2 2 0 0 1-4 0v-.09A1.7 1.7 0 0 0 9 19.4a1.7 1.7 0 0 0-1.87.34l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.7 1.7 0 0 0 4.6 15a1.7 1.7 0 0 0-1.55-1H3a2 2 0 0 1 0-4h.09A1.7 1.7 0 0 0 4.6 9a1.7 1.7 0 0 0-.34-1.87l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.7 1.7 0 0 0 9 4.6a1.7 1.7 0 0 0 1-1.55V3a2 2 0 0 1 4 0v.09a1.7 1.7 0 0 0 1 1.55 1.7 1.7 0 0 0 1.87-.34l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.7 1.7 0 0 0 19.4 9a1.7 1.7 0 0 0 1.55 1H21a2 2 0 0 1 0 4h-.09a1.7 1.7 0 0 0-1.51 1z"/>',
   me: '<circle cx="12" cy="8" r="4"/><path d="M4 21v-1a6 6 0 0 1 6-6h4a6 6 0 0 1 6 6v1"/>',
-  apply: '<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M19 8v6M22 11h-6"/>'
+  apply: '<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M19 8v6M22 11h-6"/>',
+  ai: '<path d="M12 3v3M12 18v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M3 12h3M18 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"/><circle cx="12" cy="12" r="4"/>'
 };
 
 function navBadgeCount(id) {
@@ -595,6 +596,7 @@ function navItemsList() {
   items.push({ id: 'vote', label: '주간 투표' });
   items.push({ id: 'complaints', label: '민원' });
   if (isAdmin()) {
+    items.push({ id: 'ai', label: 'AI 브리핑' });
     items.push({ id: 'accounts', label: '계정 관리' });
     items.push({ id: 'duties', label: '1인1역 관리' });
     items.push({ id: 'grades', label: '등급 관리' });
@@ -652,7 +654,8 @@ function renderPage(id) {
     vote: ['주간 투표', '이번 주기 동료 평가에 참여해요'],
     grades: ['등급 관리', '주기별 O/X 결과와 등급을 확인·수정해요'],
     complaints: ['민원', '민원을 제기하거나 처리해요'],
-    settings: ['설정', '투표 주기와 민원 카테고리를 관리해요']
+    settings: ['설정', '투표 주기와 민원 카테고리를 관리해요'],
+    ai: ['AI 브리핑', '정해진 질문으로 현재 상황을 요약해서 보여줘요']
   };
   const [title, sub] = titleMap[id] || ['', ''];
   document.getElementById('pageTitle').textContent = title;
@@ -661,7 +664,7 @@ function renderPage(id) {
   const renderers = {
     dashboard: renderDashboard, accounts: renderAccounts, duties: renderDuties, apply: renderApply,
     checks: renderChecks, vote: renderVote, grades: renderGrades,
-    complaints: renderComplaints, settings: renderSettings
+    complaints: renderComplaints, settings: renderSettings, ai: renderAI
   };
   (renderers[id] || renderDashboard)();
 }
@@ -979,6 +982,331 @@ function renderApply() {
   `;
 }
 
+
+/* ================= AI 브리핑 (패턴형, API 호출 없음) ================= */
+let aiLog = []; // {topic} 목록. 렌더 시점마다 최신 데이터로 다시 계산해서 항상 최신 상태 유지
+
+const AI_TOPICS = {
+  summary: { q: '오늘 전체 요약 브리핑해줘', gen: aiGenFullSummary },
+  complaints: { q: '민원 내역 알려줘', gen: aiGenComplaints },
+  resolvedComplaints: { q: '해결된 민원 내역 알려줘', gen: aiGenResolvedComplaints },
+  complaintTargets: { q: '민원 많이 받은 사람 알려줘', gen: aiGenComplaintTargets },
+  applications: { q: '1인1역 신청 현황 알려줘', gen: aiGenApplications },
+  recommend: { q: '신청 승인/거절 추천해줘', gen: aiGenRecommend },
+  applicationHistory: { q: '신청 승인/거절 이력 알려줘', gen: aiGenApplicationHistory },
+  checks: { q: '임무 완료 현황 알려줘', gen: aiGenChecks },
+  lowestCompletion: { q: '완료율 낮은 1인1역 순위 알려줘', gen: aiGenLowestCompletion },
+  votes: { q: '투표 진행 상황 알려줘', gen: aiGenVotes },
+  notVoted: { q: '아직 투표 안 한 사람 알려줘', gen: aiGenNotVoted },
+  topO: { q: 'O 제일 많이 받은 사람 알려줘', gen: aiGenTopO },
+  topX: { q: 'X 제일 많이 받은 사람 알려줘', gen: aiGenTopX },
+  grades: { q: '등급 분포 알려줘', gen: aiGenGradeDistribution },
+  dutyRoster: { q: '1인1역별 인원 현황 알려줘', gen: aiGenDutyRoster },
+  noManager: { q: '관리자 없는 1인1역 알려줘', gen: aiGenDutiesNoManager },
+  noMember: { q: '멤버 없는 1인1역 알려줘', gen: aiGenDutiesNoMember },
+  memberOverview: { q: '전체 인원 현황 알려줘', gen: aiGenMemberOverview },
+  adminList: { q: '전체관리자 목록 알려줘', gen: aiGenAdminList },
+  recentAccounts: { q: '최근 가입한 멤버 알려줘', gen: aiGenRecentAccounts }
+};
+
+function aiTextBlock(lines) {
+  return `<div style="white-space:pre-wrap; line-height:1.7;">${esc(lines.join('\n'))}</div>`;
+}
+
+function aiGenComplaints() {
+  const pending = Object.entries(cache.complaints || {}).filter(([id, c]) => c.status === 'pending');
+  if (!pending.length) return aiTextBlock(['지금 대기중인 민원은 없어. 다 처리된 상태야.']);
+  const lines = [`지금 대기중인 민원이 ${pending.length}건 있어.`];
+  pending.forEach(([id, c]) => {
+    const cat = cache.complaintCategories[c.categoryId];
+    lines.push(`· [${cat ? cat.title : '분류없음'}] "${c.title}" — ${userName(c.submittedBy)} 제출${c.targetUid ? `, 대상: ${userName(c.targetUid)}` : ''}`);
+  });
+  return aiTextBlock(lines);
+}
+
+function aiGenApplications() {
+  const rows = [];
+  Object.entries(cache.duties || {}).forEach(([id, d]) => {
+    const apps = Object.entries(dutyApplications(id)).filter(([uid, a]) => a.status === 'pending');
+    if (apps.length) {
+      const names = apps.map(([uid]) => {
+        const t = applicationVoteTally(id, uid);
+        return `${userName(uid)}(O${t.o}/X${t.x})`;
+      }).join(', ');
+      rows.push(`· ${d.title}: ${apps.length}명 — ${names}`);
+    }
+  });
+  if (!rows.length) return aiTextBlock(['지금 대기중인 1인1역 신청은 없어.']);
+  return aiTextBlock(['대기중인 신청이 있는 1인1역이야.', ...rows]);
+}
+
+function aiRecommendRows() {
+  const rows = [];
+  Object.entries(cache.duties || {}).forEach(([dutyId, d]) => {
+    Object.entries(dutyApplications(dutyId)).forEach(([uid, a]) => {
+      if (a.status !== 'pending') return;
+      const t = applicationVoteTally(dutyId, uid);
+      let verdict, cls, dot;
+      if (t.total === 0) { verdict = '투표 없음 · 보류'; cls = 'pending'; dot = 'var(--gray-text)'; }
+      else if (t.o > t.x) { verdict = '승인 추천'; cls = 'resolved'; dot = 'var(--green-500)'; }
+      else if (t.x > t.o) { verdict = '거절 추천'; cls = 'grade-D'; dot = 'var(--danger)'; }
+      else { verdict = '동률 · 판단 필요'; cls = 'pending'; dot = 'var(--warn)'; }
+      rows.push({ dutyId, dutyTitle: d.title, uid, name: userName(uid), o: t.o, x: t.x, verdict, cls, dot });
+    });
+  });
+  return rows;
+}
+function aiGenRecommend() {
+  const rows = aiRecommendRows();
+  if (!rows.length) return `<div class="empty">지금 대기중인 신청이 없어.</div>`;
+  return rows.map(r => `
+    <div class="list-item">
+      <span class="ldot" style="background:${r.dot}"></span>
+      <span class="lname">${esc(r.name)} <span style="color:var(--text-dim);font-weight:400;font-size:11.5px;">· ${esc(r.dutyTitle)} · O${r.o}/X${r.x}</span></span>
+      <span class="badge ${r.cls}">${r.verdict}</span>
+      <button class="btn small" onclick="aiApprove('${r.dutyId}','${r.uid}')">승인</button>
+      <button class="btn ghost small" onclick="aiReject('${r.dutyId}','${r.uid}')">거절</button>
+    </div>`).join('');
+}
+function aiApprove(dutyId, uid) { approveApplication(dutyId, uid); }
+function aiReject(dutyId, uid) { rejectApplication(dutyId, uid); }
+
+function aiGenChecks() {
+  const pid = currentPeriodId();
+  if (!pid) return aiTextBlock(['아직 활성화된 주기가 없어서 확인할 게 없어.']);
+  const rows = [];
+  Object.entries(cache.duties || {}).forEach(([dutyId, d]) => {
+    const src = (d.checkTargets && Object.keys(d.checkTargets).length) ? d.checkTargets : (d.memberIds || {});
+    const undone = Object.keys(src).filter(uid => {
+      const c = (((cache.completions[pid] || {})[dutyId] || {})[uid]) || {};
+      return !c.done;
+    });
+    if (undone.length) rows.push(`· ${d.title}: ${undone.map(uid => userName(uid)).join(', ')} 미완료`);
+  });
+  if (!rows.length) return aiTextBlock(['이번 주기 임무는 다 완료됐어.']);
+  return aiTextBlock(['아직 완료 안 된 임무가 있어.', ...rows]);
+}
+
+function aiGenVotes() {
+  const pid = currentPeriodId();
+  if (!pid) return aiTextBlock(['아직 활성화된 투표 주기가 없어.']);
+  const total = Object.keys(cache.users || {}).length;
+  const rows = Object.entries(cache.users || {}).map(([uid, u]) => {
+    const c = Object.keys((cache.votes[pid] || {})[uid] || {}).length;
+    return `· ${u.name}: ${c}/${Math.max(total - 1, 0)}표`;
+  });
+  return aiTextBlock([`${cache.periods[pid].label} 투표 진행 상황이야.`, ...rows]);
+}
+
+function aiGenNotVoted() {
+  const pid = currentPeriodId();
+  if (!pid) return aiTextBlock(['아직 활성화된 투표 주기가 없어.']);
+  // "투표 안 함" = 이 사람이 다른 누구에게도 O/X를 아직 안 던진 경우
+  const voterActivity = {};
+  Object.values(cache.votes[pid] || {}).forEach(votersForTarget => {
+    Object.keys(votersForTarget).forEach(voterUid => { voterActivity[voterUid] = true; });
+  });
+  const notVoted = Object.entries(cache.users || {}).filter(([uid]) => !voterActivity[uid]);
+  if (!notVoted.length) return aiTextBlock(['전원 최소 한 번은 투표에 참여했어.']);
+  return aiTextBlock([`아직 한 표도 안 던진 사람이야 (${notVoted.length}명).`, ...notVoted.map(([uid, u]) => `· ${u.name}`)]);
+}
+
+function aiGenTopO() {
+  const pid = currentPeriodId();
+  if (!pid) return aiTextBlock(['아직 활성화된 투표 주기가 없어.']);
+  const rows = Object.entries(cache.users || {}).map(([uid, u]) => {
+    const votes = Object.values((cache.votes[pid] || {})[uid] || {});
+    return { name: u.name, o: votes.filter(v => v === 'O').length, total: votes.length };
+  }).filter(r => r.total > 0).sort((a, b) => b.o - a.o).slice(0, 5);
+  if (!rows.length) return aiTextBlock(['아직 집계할 투표 결과가 없어.']);
+  return aiTextBlock(['O 많이 받은 순위야.', ...rows.map((r, i) => `${i + 1}. ${r.name} — O ${r.o}/${r.total}`)]);
+}
+
+function aiGenTopX() {
+  const pid = currentPeriodId();
+  if (!pid) return aiTextBlock(['아직 활성화된 투표 주기가 없어.']);
+  const rows = Object.entries(cache.users || {}).map(([uid, u]) => {
+    const votes = Object.values((cache.votes[pid] || {})[uid] || {});
+    return { name: u.name, x: votes.filter(v => v === 'X').length, total: votes.length };
+  }).filter(r => r.total > 0 && r.x > 0).sort((a, b) => b.x - a.x).slice(0, 5);
+  if (!rows.length) return aiTextBlock(['X 받은 사람이 아직 없어.']);
+  return aiTextBlock(['X 많이 받은(요주의) 순위야.', ...rows.map((r, i) => `${i + 1}. ${r.name} — X ${r.x}/${r.total}`)]);
+}
+
+function aiGenGradeDistribution() {
+  const pid = currentPeriodId();
+  if (!pid) return aiTextBlock(['아직 활성화된 투표 주기가 없어.']);
+  const grades = { A: [], B: [], C: [], D: [], 미평가: [] };
+  Object.entries(cache.users || {}).forEach(([uid, u]) => {
+    const g = ((cache.grades[pid] || {})[uid]) || {};
+    const grade = g.finalGrade || g.autoGrade;
+    (grades[grade] || grades.미평가).push(u.name);
+  });
+  const lines = ['A', 'B', 'C', 'D', '미평가'].map(k => `· ${k}: ${grades[k].length}명${grades[k].length ? ' (' + grades[k].join(', ') + ')' : ''}`);
+  return aiTextBlock([`${cache.periods[pid].label} 등급 분포야.`, ...lines]);
+}
+
+function aiGenDutyRoster() {
+  const duties = Object.entries(cache.duties || {});
+  if (!duties.length) return aiTextBlock(['아직 만들어진 1인1역이 없어.']);
+  const lines = duties.map(([id, d]) => `· ${d.title}: 멤버 ${Object.keys(d.memberIds || {}).length}명, 관리자 ${Object.keys(d.managerIds || {}).length}명`);
+  return aiTextBlock(['1인1역별 인원 현황이야.', ...lines]);
+}
+
+function aiGenDutiesNoManager() {
+  const rows = Object.entries(cache.duties || {}).filter(([id, d]) => !Object.keys(d.managerIds || {}).length);
+  if (!rows.length) return aiTextBlock(['모든 1인1역에 관리자가 지정돼 있어.']);
+  return aiTextBlock(['관리자가 없는 1인1역이야. 확인해줘.', ...rows.map(([id, d]) => `· ${d.title}`)]);
+}
+
+function aiGenDutiesNoMember() {
+  const rows = Object.entries(cache.duties || {}).filter(([id, d]) => !Object.keys(d.memberIds || {}).length);
+  if (!rows.length) return aiTextBlock(['모든 1인1역에 멤버가 최소 1명 이상 있어.']);
+  return aiTextBlock(['멤버가 없는 1인1역이야.', ...rows.map(([id, d]) => `· ${d.title}`)]);
+}
+
+function aiGenMemberOverview() {
+  const users = Object.values(cache.users || {});
+  const admins = users.filter(u => u.systemRole === 'admin').length;
+  const duties = Object.keys(cache.duties || {}).length;
+  const period = currentPeriod();
+  return aiTextBlock([
+    `전체 멤버 ${users.length}명 (그중 전체관리자 ${admins}명)`,
+    `1인1역 ${duties}개`,
+    period ? `현재 주기: ${period.label} (${period.type === 'weekly' ? '주간' : '월간'})` : '현재 활성화된 주기 없음'
+  ]);
+}
+
+function aiGenAdminList() {
+  const admins = Object.values(cache.users || {}).filter(u => u.systemRole === 'admin');
+  if (!admins.length) return aiTextBlock(['등록된 전체관리자가 없어.']);
+  return aiTextBlock([`전체관리자 ${admins.length}명이야.`, ...admins.map(u => `· ${u.name}`)]);
+}
+
+function aiGenRecentAccounts() {
+  const rows = Object.values(cache.users || {}).sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0)).slice(0, 5);
+  if (!rows.length) return aiTextBlock(['등록된 계정이 없어.']);
+  return aiTextBlock(['최근 가입한 멤버 순이야.', ...rows.map(u => `· ${u.name} (${u.createdAt ? new Date(u.createdAt).toLocaleDateString('ko-KR') : '-'})`)]);
+}
+
+function aiGenResolvedComplaints() {
+  const rows = Object.entries(cache.complaints || {}).filter(([id, c]) => c.status === 'resolved')
+    .sort((a, b) => (b[1].resolvedAt || 0) - (a[1].resolvedAt || 0));
+  if (!rows.length) return aiTextBlock(['아직 해결 처리된 민원이 없어.']);
+  const lines = rows.map(([id, c]) => {
+    const cat = cache.complaintCategories[c.categoryId];
+    return `· [${cat ? cat.title : '분류없음'}] "${c.title}" — ${userName(c.submittedBy)} 제출, ${c.resolvedBy ? userName(c.resolvedBy) + ' 처리' : ''}`;
+  });
+  return aiTextBlock([`해결된 민원 ${rows.length}건이야.`, ...lines]);
+}
+
+function aiGenComplaintTargets() {
+  const tally = {};
+  Object.values(cache.complaints || {}).forEach(c => {
+    if (c.targetUid) tally[c.targetUid] = (tally[c.targetUid] || 0) + 1;
+  });
+  const rows = Object.entries(tally).sort((a, b) => b[1] - a[1]);
+  if (!rows.length) return aiTextBlock(['대상자가 지정된 민원이 아직 없어.']);
+  return aiTextBlock(['민원 많이 받은 순위야.', ...rows.map(([uid, n], i) => `${i + 1}. ${userName(uid)} — ${n}건`)]);
+}
+
+function aiGenLowestCompletion() {
+  const pid = currentPeriodId();
+  if (!pid) return aiTextBlock(['아직 활성화된 주기가 없어.']);
+  const rows = Object.entries(cache.duties || {}).map(([dutyId, d]) => {
+    const src = (d.checkTargets && Object.keys(d.checkTargets).length) ? d.checkTargets : (d.memberIds || {});
+    const ids = Object.keys(src);
+    if (!ids.length) return null;
+    const done = ids.filter(uid => (((cache.completions[pid] || {})[dutyId] || {})[uid] || {}).done).length;
+    return { title: d.title, rate: Math.round((done / ids.length) * 100), done, total: ids.length };
+  }).filter(Boolean).sort((a, b) => a.rate - b.rate);
+  if (!rows.length) return aiTextBlock(['완료율을 계산할 대상자가 있는 1인1역이 없어.']);
+  return aiTextBlock(['완료율 낮은 순 1인1역이야.', ...rows.map((r, i) => `${i + 1}. ${r.title} — ${r.rate}% (${r.done}/${r.total})`)]);
+}
+
+function aiGenApplicationHistory() {
+  const rows = [];
+  Object.entries(cache.duties || {}).forEach(([id, d]) => {
+    Object.entries(dutyApplications(id)).forEach(([uid, a]) => {
+      if (a.status === 'pending') return;
+      rows.push({ dutyTitle: d.title, name: userName(uid), status: a.status, appliedAt: a.appliedAt || 0 });
+    });
+  });
+  if (!rows.length) return aiTextBlock(['아직 승인/거절 처리된 신청 이력이 없어.']);
+  rows.sort((a, b) => b.appliedAt - a.appliedAt);
+  return aiTextBlock(['신청 처리 이력이야.', ...rows.map(r => `· ${r.name} → ${r.dutyTitle}: ${r.status === 'approved' ? '승인됨' : '거절됨'}`)]);
+}
+
+function aiGenFullSummary() {
+  const parts = [
+    '=== 민원 ===', htmlToPlain(aiGenComplaints()),
+    '', '=== 1인1역 신청 ===', htmlToPlain(aiGenApplications()),
+    '', '=== 임무 완료 ===', htmlToPlain(aiGenChecks()),
+    '', '=== 관리 공백 ===', htmlToPlain(aiGenDutiesNoManager()), htmlToPlain(aiGenDutiesNoMember())
+  ];
+  return `<div style="white-space:pre-wrap; line-height:1.7;">${parts.join('\n')}</div>`;
+}
+function htmlToPlain(html) {
+  const div = document.createElement('div');
+  div.innerHTML = html;
+  return div.textContent || '';
+}
+
+function askAI(topic) {
+  aiLog.push({ topic });
+  renderPage('ai');
+}
+function clearAiLog() { aiLog = []; renderPage('ai'); }
+
+function renderAI() {
+  document.getElementById('pageContent').innerHTML = `
+    <div class="card">
+      <h2>무엇을 확인할까?</h2>
+      <div class="field" style="margin-bottom:12px;">
+        <input id="aiSearchInput" list="aiTopicDatalist" placeholder="질문 검색... (예: 민원, 등급, 완료율)"
+          oninput="filterAiTopics()" onkeydown="if(event.key==='Enter'){ aiSearchSubmit(); }">
+        <datalist id="aiTopicDatalist">
+          ${Object.values(AI_TOPICS).map(t => `<option value="${esc(t.q)}"></option>`).join('')}
+        </datalist>
+      </div>
+      <div id="aiTopicButtons" style="display:flex; flex-wrap:wrap; gap:8px;">
+        ${aiTopicButtonsHtml('')}
+      </div>
+      ${aiLog.length ? `<div style="margin-top:10px;"><button class="btn ghost small" onclick="clearAiLog()">대화 지우기</button></div>` : ''}
+    </div>
+    ${aiLog.length ? aiLog.map(entry => {
+      const t = AI_TOPICS[entry.topic];
+      return `
+      <div class="card">
+        <h2>💬 ${esc(t.q)}</h2>
+        ${t.gen()}
+      </div>`;
+    }).join('') : `<div class="card"><div class="empty">위에서 궁금한 걸 눌러보거나 검색해봐. 실시간 데이터로 바로 알려줄게.</div></div>`}
+  `;
+}
+
+function aiTopicButtonsHtml(query) {
+  const q = query.trim().toLowerCase();
+  const entries = Object.entries(AI_TOPICS).filter(([key, t]) => !q || t.q.toLowerCase().includes(q));
+  if (!entries.length) return `<div style="color:var(--text-dim);font-size:12.5px;">일치하는 질문이 없어. 목록에 있는 표현으로 검색해봐.</div>`;
+  return entries.map(([key, t]) => `<button class="btn ghost small" onclick="askAI('${key}')">${esc(t.q)}</button>`).join('');
+}
+function filterAiTopics() {
+  const val = document.getElementById('aiSearchInput').value;
+  document.getElementById('aiTopicButtons').innerHTML = aiTopicButtonsHtml(val);
+}
+function aiSearchSubmit() {
+  const val = document.getElementById('aiSearchInput').value.trim().toLowerCase();
+  if (!val) return;
+  const exact = Object.entries(AI_TOPICS).find(([key, t]) => t.q.toLowerCase() === val);
+  const match = exact || Object.entries(AI_TOPICS).find(([key, t]) => t.q.toLowerCase().includes(val));
+  if (match) {
+    document.getElementById('aiSearchInput').value = '';
+    askAI(match[0]);
+  } else {
+    toast('일치하는 질문을 못 찾았어');
+  }
+}
 
 function renderDuties() {
   if (!isAdmin()) return renderNoAccess();
