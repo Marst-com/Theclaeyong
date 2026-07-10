@@ -333,7 +333,7 @@ try {
 /* ---------------- 로컬 캐시 (실시간 동기화 됨) ---------------- */
 const cache = {
   users: {},               // uid -> {name, password, systemRole, createdAt}
-  duties: {},              // dutyId -> {title, color, memberIds:{}, managerIds:{}, checkTargets:{}}
+  duties: {},              // dutyId -> {title, color, memberIds:{}, managerIds:{}}
   periods: {},             // periodId -> {label, type, active, createdAt}
   completions: {},         // periodId -> dutyId -> uid -> {done, checkedBy, checkedAt}
   votes: {},               // periodId -> targetUid -> voterUid -> 'O'|'X'
@@ -493,9 +493,12 @@ function syncThemeButtons() {
 /* ================= HELPERS ================= */
 function isAdmin() { return currentUser && currentUser.systemRole === 'admin'; }
 function isManagerOfAny() {
+  if (isAdmin()) return Object.keys(cache.duties || {}).length > 0;
   return Object.values(cache.duties || {}).some(d => d.managerIds && d.managerIds[currentUser.uid]);
 }
 function myManagedDuties() {
+  // 전체관리자는 모든 1인1역을 자동으로 관리함 (별도 관리자 지정 불필요)
+  if (isAdmin()) return Object.entries(cache.duties || {});
   return Object.entries(cache.duties || {}).filter(([id, d]) => d.managerIds && d.managerIds[currentUser.uid]);
 }
 function userName(uid) { return (cache.users[uid] && cache.users[uid].name) || '(삭제된 사용자)'; }
@@ -538,7 +541,10 @@ const NAV_ICONS = {
   settings: '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.87l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.7 1.7 0 0 0-1.87-.34 1.7 1.7 0 0 0-1 1.55V21a2 2 0 0 1-4 0v-.09A1.7 1.7 0 0 0 9 19.4a1.7 1.7 0 0 0-1.87.34l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.7 1.7 0 0 0 4.6 15a1.7 1.7 0 0 0-1.55-1H3a2 2 0 0 1 0-4h.09A1.7 1.7 0 0 0 4.6 9a1.7 1.7 0 0 0-.34-1.87l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.7 1.7 0 0 0 9 4.6a1.7 1.7 0 0 0 1-1.55V3a2 2 0 0 1 4 0v.09a1.7 1.7 0 0 0 1 1.55 1.7 1.7 0 0 0 1.87-.34l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.7 1.7 0 0 0 19.4 9a1.7 1.7 0 0 0 1.55 1H21a2 2 0 0 1 0 4h-.09a1.7 1.7 0 0 0-1.51 1z"/>',
   me: '<circle cx="12" cy="8" r="4"/><path d="M4 21v-1a6 6 0 0 1 6-6h4a6 6 0 0 1 6 6v1"/>',
   apply: '<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M19 8v6M22 11h-6"/>',
-  ai: '<path d="M12 3v3M12 18v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M3 12h3M18 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"/><circle cx="12" cy="12" r="4"/>'
+  ai: '<path d="M12 3v3M12 18v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M3 12h3M18 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"/><circle cx="12" cy="12" r="4"/>',
+  myDuties: '<path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>',
+  roster: '<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18M8 4v-1M16 4v-1"/>',
+  myGrades: '<path d="M12 20v-6M6 20V10M18 20V4"/>'
 };
 
 function navBadgeCount(id) {
@@ -547,7 +553,7 @@ function navBadgeCount(id) {
     if (!pid) return 0;
     let count = 0;
     myManagedDuties().forEach(([dutyId, d]) => {
-      const src = (d.checkTargets && Object.keys(d.checkTargets).length) ? d.checkTargets : (d.memberIds || {});
+      const src = d.memberIds || {};
       Object.keys(src).forEach(uid => {
         const c = (((cache.completions[pid] || {})[dutyId] || {})[uid]) || {};
         if (!c.done) count++;
@@ -592,9 +598,12 @@ function navBadgeCount(id) {
 function navItemsList() {
   const items = [{ id: 'dashboard', label: '대시보드' }];
   items.push({ id: 'apply', label: '1인1역 신청' });
+  items.push({ id: 'myDuties', label: '내 1인1역' });
   if (isManagerOfAny()) items.push({ id: 'checks', label: '임무 확인' });
   items.push({ id: 'vote', label: '주간 투표' });
   items.push({ id: 'complaints', label: '민원' });
+  items.push({ id: 'roster', label: '멤버 현황판' });
+  items.push({ id: 'myGrades', label: '등급 히스토리' });
   if (isAdmin()) {
     items.push({ id: 'ai', label: 'AI 브리핑' });
     items.push({ id: 'accounts', label: '계정 관리' });
@@ -602,6 +611,7 @@ function navItemsList() {
     items.push({ id: 'grades', label: '등급 관리' });
     items.push({ id: 'settings', label: '설정' });
   }
+  items.push({ id: 'me', label: '내 정보' });
   return items;
 }
 
@@ -618,11 +628,12 @@ function buildNav() {
     </button>`;
   }).join('');
 
-  // 모바일 하단 탭바: 대표 5개까지만 노출
-  const bottomItems = items.slice(0, 5);
+  // 모바일 하단 탭바: 대표 4개 + "더보기" (전체 메뉴는 더보기 시트에서 접근)
+  const primary = items.slice(0, 4);
+  const rest = items.slice(4);
   const bn = document.getElementById('bottomNav');
   if (bn) {
-    bn.innerHTML = bottomItems.map(it => {
+    const primaryHtml = primary.map(it => {
       const count = navBadgeCount(it.id);
       return `
       <button data-nav-b="${it.id}" onclick="renderPage('${it.id}')">
@@ -631,7 +642,31 @@ function buildNav() {
         ${count > 0 ? `<span class="bnbadge">${count}</span>` : ''}
       </button>`;
     }).join('');
+    const restBadgeTotal = rest.reduce((sum, it) => sum + navBadgeCount(it.id), 0);
+    const moreHtml = rest.length ? `
+      <button data-nav-b="__more__" onclick="openMoreMenu()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="5" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="19" cy="12" r="1.5"/></svg>
+        더보기
+        ${restBadgeTotal > 0 ? `<span class="bnbadge">${restBadgeTotal}</span>` : ''}
+      </button>` : '';
+    bn.innerHTML = primaryHtml + moreHtml;
   }
+}
+function openMoreMenu() {
+  const items = navItemsList();
+  const rest = items.slice(4);
+  openModal(`
+    <h3>더보기</h3>
+    <div style="display:flex; flex-direction:column; gap:6px;">
+      ${rest.map(it => {
+        const count = navBadgeCount(it.id);
+        return `<button class="nav-item" style="background:var(--bg-elev2);" onclick="closeModal(); renderPage('${it.id}')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${NAV_ICONS[it.id]}</svg>
+          ${it.label}
+          ${count > 0 ? `<span class="badge" style="background:var(--danger);color:#fff;margin-left:auto;">${count}</span>` : ''}
+        </button>`;
+      }).join('')}
+    </div>`);
 }
 
 function setActiveNav(id) {
@@ -655,7 +690,11 @@ function renderPage(id) {
     grades: ['등급 관리', '주기별 O/X 결과와 등급을 확인·수정해요'],
     complaints: ['민원', '민원을 제기하거나 처리해요'],
     settings: ['설정', '투표 주기와 민원 카테고리를 관리해요'],
-    ai: ['AI 브리핑', '정해진 질문으로 현재 상황을 요약해서 보여줘요']
+    ai: ['AI 브리핑', '정해진 질문으로 현재 상황을 요약해서 보여줘요'],
+    me: ['내 정보', '내 계정 정보를 확인하고 비밀번호를 바꿔요'],
+    myDuties: ['내 1인1역', '내가 맡은 역할과 완료 현황을 확인해요'],
+    roster: ['멤버 현황판', '전체 1인1역과 소속 멤버를 한눈에 봐요'],
+    myGrades: ['등급 히스토리', '주기별로 내가 받은 등급을 확인해요']
   };
   const [title, sub] = titleMap[id] || ['', ''];
   document.getElementById('pageTitle').textContent = title;
@@ -664,7 +703,8 @@ function renderPage(id) {
   const renderers = {
     dashboard: renderDashboard, accounts: renderAccounts, duties: renderDuties, apply: renderApply,
     checks: renderChecks, vote: renderVote, grades: renderGrades,
-    complaints: renderComplaints, settings: renderSettings, ai: renderAI
+    complaints: renderComplaints, settings: renderSettings, ai: renderAI, me: renderMe,
+    myDuties: renderMyDuties, roster: renderRoster, myGrades: renderMyGrades
   };
   (renderers[id] || renderDashboard)();
 }
@@ -711,7 +751,7 @@ function renderDashboard() {
   if (isManagerOfAny() && pid) {
     const rows = [];
     myManagedDuties().forEach(([dutyId, d]) => {
-      const src = (d.checkTargets && Object.keys(d.checkTargets).length) ? d.checkTargets : (d.memberIds || {});
+      const src = d.memberIds || {};
       Object.keys(src).forEach(uid => {
         const c = (((cache.completions[pid] || {})[dutyId] || {})[uid]) || {};
         rows.push({ name: userName(uid), done: !!c.done, sub: d.title });
@@ -1002,9 +1042,8 @@ const AI_TOPICS = {
   topX: { q: 'X 제일 많이 받은 사람 알려줘', gen: aiGenTopX },
   grades: { q: '등급 분포 알려줘', gen: aiGenGradeDistribution },
   dutyRoster: { q: '1인1역별 인원 현황 알려줘', gen: aiGenDutyRoster },
-  noManager: { q: '관리자 없는 1인1역 알려줘', gen: aiGenDutiesNoManager },
-  noMember: { q: '멤버 없는 1인1역 알려줘', gen: aiGenDutiesNoMember },
   memberOverview: { q: '전체 인원 현황 알려줘', gen: aiGenMemberOverview },
+  noMember: { q: '멤버 없는 1인1역 알려줘', gen: aiGenDutiesNoMember },
   adminList: { q: '전체관리자 목록 알려줘', gen: aiGenAdminList },
   recentAccounts: { q: '최근 가입한 멤버 알려줘', gen: aiGenRecentAccounts }
 };
@@ -1076,7 +1115,7 @@ function aiGenChecks() {
   if (!pid) return aiTextBlock(['아직 활성화된 주기가 없어서 확인할 게 없어.']);
   const rows = [];
   Object.entries(cache.duties || {}).forEach(([dutyId, d]) => {
-    const src = (d.checkTargets && Object.keys(d.checkTargets).length) ? d.checkTargets : (d.memberIds || {});
+    const src = d.memberIds || {};
     const undone = Object.keys(src).filter(uid => {
       const c = (((cache.completions[pid] || {})[dutyId] || {})[uid]) || {};
       return !c.done;
@@ -1153,12 +1192,6 @@ function aiGenDutyRoster() {
   return aiTextBlock(['1인1역별 인원 현황이야.', ...lines]);
 }
 
-function aiGenDutiesNoManager() {
-  const rows = Object.entries(cache.duties || {}).filter(([id, d]) => !Object.keys(d.managerIds || {}).length);
-  if (!rows.length) return aiTextBlock(['모든 1인1역에 관리자가 지정돼 있어.']);
-  return aiTextBlock(['관리자가 없는 1인1역이야. 확인해줘.', ...rows.map(([id, d]) => `· ${d.title}`)]);
-}
-
 function aiGenDutiesNoMember() {
   const rows = Object.entries(cache.duties || {}).filter(([id, d]) => !Object.keys(d.memberIds || {}).length);
   if (!rows.length) return aiTextBlock(['모든 1인1역에 멤버가 최소 1명 이상 있어.']);
@@ -1214,7 +1247,7 @@ function aiGenLowestCompletion() {
   const pid = currentPeriodId();
   if (!pid) return aiTextBlock(['아직 활성화된 주기가 없어.']);
   const rows = Object.entries(cache.duties || {}).map(([dutyId, d]) => {
-    const src = (d.checkTargets && Object.keys(d.checkTargets).length) ? d.checkTargets : (d.memberIds || {});
+    const src = d.memberIds || {};
     const ids = Object.keys(src);
     if (!ids.length) return null;
     const done = ids.filter(uid => (((cache.completions[pid] || {})[dutyId] || {})[uid] || {}).done).length;
@@ -1242,7 +1275,7 @@ function aiGenFullSummary() {
     '=== 민원 ===', htmlToPlain(aiGenComplaints()),
     '', '=== 1인1역 신청 ===', htmlToPlain(aiGenApplications()),
     '', '=== 임무 완료 ===', htmlToPlain(aiGenChecks()),
-    '', '=== 관리 공백 ===', htmlToPlain(aiGenDutiesNoManager()), htmlToPlain(aiGenDutiesNoMember())
+    '', '=== 관리 공백 ===', htmlToPlain(aiGenDutiesNoMember())
   ];
   return `<div style="white-space:pre-wrap; line-height:1.7;">${parts.join('\n')}</div>`;
 }
@@ -1318,23 +1351,12 @@ function renderDuties() {
         <button class="btn ghost small" style="margin-left:auto;" onclick="openEditDutyModal('${id}')">편집</button>
         <button class="btn danger small" onclick="deleteDuty('${id}')">삭제</button>
       </h2>
-      <div class="grid3">
-        <div>
-          <div style="font-size:12px;font-weight:700;color:var(--text-dim);margin-bottom:6px;">멤버 (${Object.keys(d.memberIds || {}).length})</div>
-          ${renderTagList(d.memberIds, id, 'memberIds')}
-          ${renderAssignBtn(id, 'memberIds', '멤버 추가')}
-        </div>
-        <div>
-          <div style="font-size:12px;font-weight:700;color:var(--text-dim);margin-bottom:6px;">1인1역 관리자 (${Object.keys(d.managerIds || {}).length})</div>
-          ${renderTagList(d.managerIds, id, 'managerIds')}
-          ${renderAssignBtn(id, 'managerIds', '관리자 추가')}
-        </div>
-        <div>
-          <div style="font-size:12px;font-weight:700;color:var(--text-dim);margin-bottom:6px;">확인 대상자 (${Object.keys(d.checkTargets || {}).length})</div>
-          ${renderTagList(d.checkTargets, id, 'checkTargets')}
-          ${renderAssignBtn(id, 'checkTargets', '대상자 추가')}
-        </div>
+      <div>
+        <div style="font-size:12px;font-weight:700;color:var(--text-dim);margin-bottom:6px;">멤버 (${Object.keys(d.memberIds || {}).length})</div>
+        ${renderTagList(d.memberIds, id, 'memberIds')}
+        ${renderAssignBtn(id, 'memberIds', '멤버 추가')}
       </div>
+      <div style="font-size:11.5px;color:var(--text-dim);margin-top:8px;">1인1역 관리자는 별도 지정 없이 전체관리자 전원이 자동으로 맡고, 확인 대상은 항상 멤버 전체예요.</div>
     </div>
   `).join('') : `<div class="card"><div class="empty">아직 만든 1인1역이 없어요</div></div>`;
 }
@@ -1366,7 +1388,7 @@ function submitCreateDuty() {
   const color = document.getElementById('mDutyColor').value;
   if (!title) { toast('타이틀을 입력해줘'); return; }
   const id = newKey('duties');
-  db.ref('duties/' + id).set({ title, color, memberIds: {}, managerIds: {}, checkTargets: {} })
+  db.ref('duties/' + id).set({ title, color, memberIds: {}, managerIds: {} })
     .then(() => { toast('1인1역을 만들었어'); closeModal(); });
 }
 function openEditDutyModal(id) {
@@ -1425,7 +1447,7 @@ function renderChecks() {
     return;
   }
   document.getElementById('pageContent').innerHTML = managed.map(([dutyId, d]) => {
-    const targets = Object.keys(d.checkTargets && Object.keys(d.checkTargets).length ? d.checkTargets : d.memberIds || {});
+    const targets = Object.keys(d.memberIds || {});
     return `
     <div class="card">
       <h2><span class="chip-color" style="background:${d.color}"></span>${esc(d.title)}</h2>
@@ -1504,18 +1526,29 @@ function recalcGrade(targetUid) {
 }
 
 /* ================= GRADES (admin) ================= */
+let selectedGradePeriodId = null;
+function changeGradePeriod(pid) { selectedGradePeriodId = pid; renderPage('grades'); }
+
 function renderGrades() {
   if (!isAdmin()) return renderNoAccess();
-  const pid = currentPeriodId();
-  if (!pid) {
+  const allPeriods = Object.entries(cache.periods || {}).sort((a, b) => (b[1].createdAt || 0) - (a[1].createdAt || 0));
+  if (!allPeriods.length) {
     document.getElementById('pageContent').innerHTML = `<div class="card"><div class="empty">활성화된 주기가 없어요. 설정에서 먼저 만들어줘.</div></div>`;
     return;
   }
+  if (!selectedGradePeriodId || !cache.periods[selectedGradePeriodId]) selectedGradePeriodId = currentPeriodId() || allPeriods[0][0];
+  const pid = selectedGradePeriodId;
   const period = cache.periods[pid];
   const users = Object.entries(cache.users || {});
   document.getElementById('pageContent').innerHTML = `
     <div class="card">
-      <h2>${esc(period.label)} 등급표</h2>
+      <h2>등급표 <span style="color:var(--text-dim);font-weight:600;font-size:12px;">${pid === currentPeriodId() ? '· 현재 주기' : '· 지난 주기'}</span></h2>
+      <div class="field" style="max-width:260px;">
+        <label>조회할 주기</label>
+        <select onchange="changeGradePeriod(this.value)">
+          ${allPeriods.map(([id, p]) => `<option value="${id}" ${id === pid ? 'selected' : ''}>${esc(p.label)}${id === currentPeriodId() ? ' (현재)' : ''}</option>`).join('')}
+        </select>
+      </div>
       <table>
         <thead><tr><th>이름</th><th>O</th><th>X</th><th>비율</th><th>자동등급</th><th>최종등급</th><th></th></tr></thead>
         <tbody>
@@ -1626,6 +1659,119 @@ function resolveComplaint(id) {
 }
 
 /* ================= SETTINGS (admin: 주기 + 민원 카테고리) ================= */
+/* ================= ME (내 정보 / 비밀번호 변경) ================= */
+/* ================= MY DUTIES (내 1인1역) ================= */
+function renderMyDuties() {
+  const myDuties = Object.entries(cache.duties || {}).filter(([id, d]) => d.memberIds && d.memberIds[currentUser.uid]);
+  const pid = currentPeriodId();
+  const pastPeriods = Object.entries(cache.periods || {}).sort((a, b) => (b[1].createdAt || 0) - (a[1].createdAt || 0)).slice(0, 6);
+
+  document.getElementById('pageContent').innerHTML = `
+    ${myDuties.length ? myDuties.map(([dutyId, d]) => {
+      const curDone = pid ? !!(((cache.completions[pid] || {})[dutyId] || {})[currentUser.uid] || {}).done : null;
+      return `
+      <div class="card">
+        <h2><span class="chip-color" style="background:${d.color}"></span>${esc(d.title)}
+          ${pid ? `<span class="badge ${curDone ? 'resolved' : 'pending'}" style="margin-left:auto;">${curDone ? '이번 주기 완료' : '이번 주기 대기'}</span>` : ''}
+        </h2>
+        <div style="font-size:12px;color:var(--text-dim);margin-bottom:8px;">최근 주기별 완료 기록</div>
+        ${pastPeriods.length ? `<div style="display:flex; flex-wrap:wrap; gap:6px;">
+          ${pastPeriods.map(([pId, p]) => {
+            const done = !!(((cache.completions[pId] || {})[dutyId] || {})[currentUser.uid] || {}).done;
+            return `<span class="badge ${done ? 'resolved' : 'pending'}" title="${esc(p.label)}">${esc(p.label)} ${done ? '✓' : '·'}</span>`;
+          }).join('')}
+        </div>` : `<div class="empty">아직 기록된 주기가 없어요</div>`}
+      </div>`;
+    }).join('') : `<div class="card"><div class="empty">아직 맡은 1인1역이 없어요. "1인1역 신청" 탭에서 신청해봐.</div></div>`}
+  `;
+}
+
+/* ================= ROSTER (멤버 현황판, 전체 열람 가능) ================= */
+function renderRoster() {
+  const duties = Object.entries(cache.duties || {});
+  document.getElementById('pageContent').innerHTML = duties.length ? `
+    <div class="grid2">
+      ${duties.map(([id, d]) => {
+        const members = Object.keys(d.memberIds || {});
+        return `
+        <div class="card">
+          <h2><span class="chip-color" style="background:${d.color}"></span>${esc(d.title)} <span style="color:var(--text-dim);font-weight:600;font-size:12px;">· ${members.length}명</span></h2>
+          ${members.length ? `<div style="display:flex; flex-wrap:wrap; gap:6px;">
+            ${members.map(uid => `<span class="badge" style="background:var(--bg-elev2);color:var(--text);border:1px solid var(--border);">${esc(userName(uid))}</span>`).join('')}
+          </div>` : `<div class="empty">아직 멤버가 없어요</div>`}
+        </div>`;
+      }).join('')}
+    </div>
+  ` : `<div class="card"><div class="empty">아직 만들어진 1인1역이 없어요</div></div>`;
+}
+
+/* ================= MY GRADES (등급 히스토리) ================= */
+function renderMyGrades() {
+  const periods = Object.entries(cache.periods || {}).sort((a, b) => (b[1].createdAt || 0) - (a[1].createdAt || 0));
+  document.getElementById('pageContent').innerHTML = `
+    <div class="card">
+      <h2>내 등급 히스토리</h2>
+      ${periods.length ? `<table>
+        <thead><tr><th>주기</th><th>O</th><th>X</th><th>등급</th></tr></thead>
+        <tbody>
+        ${periods.map(([pid, p]) => {
+          const votes = Object.values((cache.votes[pid] || {})[currentUser.uid] || {});
+          const o = votes.filter(v => v === 'O').length;
+          const x = votes.filter(v => v === 'X').length;
+          const g = ((cache.grades[pid] || {})[currentUser.uid]) || {};
+          const grade = g.finalGrade || g.autoGrade;
+          return `<tr>
+            <td>${esc(p.label)}${pid === currentPeriodId() ? ' <span style="color:var(--text-dim);font-size:11px;">(현재)</span>' : ''}</td>
+            <td>${o}</td>
+            <td>${x}</td>
+            <td>${grade ? `<span class="badge grade-${grade}">${grade}</span>` : '<span class="badge grade-null">미평가</span>'}</td>
+          </tr>`;
+        }).join('')}
+        </tbody>
+      </table>` : `<div class="empty">아직 주기 기록이 없어요</div>`}
+    </div>
+  `;
+}
+
+function renderMe() {
+  const info = cache.users[currentUser.uid] || {};
+  document.getElementById('pageContent').innerHTML = `
+    <div class="card">
+      <h2>내 정보</h2>
+      <table>
+        <tbody>
+          <tr><td style="width:110px;color:var(--text-dim);">이름</td><td>${esc(info.name)}</td></tr>
+          <tr><td style="color:var(--text-dim);">권한</td><td>${info.systemRole === 'admin' ? '전체관리자' : '멤버'}</td></tr>
+          <tr><td style="color:var(--text-dim);">가입일</td><td>${info.createdAt ? new Date(info.createdAt).toLocaleDateString('ko-KR') : '-'}</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="card">
+      <h2>비밀번호 변경</h2>
+      <div class="field"><label>현재 비밀번호</label><input id="mePwCurrent" type="password"></div>
+      <div class="field"><label>새 비밀번호</label><input id="mePwNew" type="password" placeholder="4자 이상"></div>
+      <div class="field"><label>새 비밀번호 확인</label><input id="mePwNew2" type="password"></div>
+      <div class="err-msg" id="mePwErr"></div>
+      <button class="btn" onclick="submitChangePassword()">변경하기</button>
+    </div>
+  `;
+}
+function submitChangePassword() {
+  const cur = document.getElementById('mePwCurrent').value;
+  const next = document.getElementById('mePwNew').value;
+  const next2 = document.getElementById('mePwNew2').value;
+  const errEl = document.getElementById('mePwErr');
+  const info = cache.users[currentUser.uid] || {};
+  errEl.textContent = '';
+  if (cur !== info.password) { errEl.textContent = '현재 비밀번호가 맞지 않아'; return; }
+  if (next.length < 4) { errEl.textContent = '새 비밀번호는 4자 이상으로 해줘'; return; }
+  if (next !== next2) { errEl.textContent = '새 비밀번호 확인이 서로 달라'; return; }
+  db.ref('users/' + currentUser.uid + '/password').set(next).then(() => {
+    toast('비밀번호를 변경했어');
+    ['mePwCurrent', 'mePwNew', 'mePwNew2'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+  });
+}
+
 function renderSettings() {
   if (!isAdmin()) return renderNoAccess();
   const periods = Object.entries(cache.periods || {}).sort((a, b) => (b[1].createdAt || 0) - (a[1].createdAt || 0));
