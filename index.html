@@ -341,6 +341,9 @@ const cache = {
   complaintCategories: {}, // catId -> {title, color}
   complaints: {},          // id -> {categoryId, title, content, targetUid, submittedBy, status, createdAt}
   applicationVotes: {},    // dutyId -> applicantUid -> voterUid -> 'O'|'X'
+  polls: {},               // pollId -> {question, type:'ox'|'choice', options:[], createdBy, createdAt, closed}
+  pollVotes: {},           // pollId -> voterUid -> answer
+  memos: {},                // id -> {toUid, message, sentBy, sentAt, read}
   settings: { currentPeriodId: null, voteCycle: 'weekly' }
 };
 
@@ -376,7 +379,7 @@ function init() {
 
 function attachRealtimeListeners() {
   if (!dbReady) return;
-  const paths = ['users', 'duties', 'periods', 'completions', 'votes', 'grades', 'complaintCategories', 'complaints', 'applicationVotes', 'settings'];
+  const paths = ['users', 'duties', 'periods', 'completions', 'votes', 'grades', 'complaintCategories', 'complaints', 'applicationVotes', 'polls', 'pollVotes', 'memos', 'settings'];
   paths.forEach(path => {
     db.ref(path).on('value', snap => {
       const val = snap.val() || (path === 'settings' ? { currentPeriodId: null, voteCycle: 'weekly' } : {});
@@ -544,11 +547,15 @@ const NAV_ICONS = {
   ai: '<path d="M12 3v3M12 18v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M3 12h3M18 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"/><circle cx="12" cy="12" r="4"/>',
   myDuties: '<path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>',
   roster: '<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18M8 4v-1M16 4v-1"/>',
-  myGrades: '<path d="M12 20v-6M6 20V10M18 20V4"/>'
+  myGrades: '<path d="M12 20v-6M6 20V10M18 20V4"/>',
+  memos: '<path d="M4 4h16v12H7l-3 3V4z"/><path d="M8 9h8M8 12h5"/>'
 };
 
 function navBadgeCount(id) {
   const pid = currentPeriodId();
+  if (id === 'memos') {
+    return Object.values(cache.memos || {}).filter(m => m.toUid === currentUser.uid && !m.read).length;
+  }
   if (id === 'checks') {
     if (!pid) return 0;
     let count = 0;
@@ -611,6 +618,7 @@ function navItemsList() {
     items.push({ id: 'grades', label: '등급 관리' });
     items.push({ id: 'settings', label: '설정' });
   }
+  items.push({ id: 'memos', label: '메모함' });
   items.push({ id: 'me', label: '내 정보' });
   return items;
 }
@@ -694,7 +702,8 @@ function renderPage(id) {
     me: ['내 정보', '내 계정 정보를 확인하고 비밀번호를 바꿔요'],
     myDuties: ['내 1인1역', '내가 맡은 역할과 완료 현황을 확인해요'],
     roster: ['멤버 현황판', '전체 1인1역과 소속 멤버를 한눈에 봐요'],
-    myGrades: ['등급 히스토리', '주기별로 내가 받은 등급을 확인해요']
+    myGrades: ['등급 히스토리', '주기별로 내가 받은 등급을 확인해요'],
+    memos: ['메모함', '관리자가 보낸 메모와 알림을 확인해요']
   };
   const [title, sub] = titleMap[id] || ['', ''];
   document.getElementById('pageTitle').textContent = title;
@@ -704,7 +713,7 @@ function renderPage(id) {
     dashboard: renderDashboard, accounts: renderAccounts, duties: renderDuties, apply: renderApply,
     checks: renderChecks, vote: renderVote, grades: renderGrades,
     complaints: renderComplaints, settings: renderSettings, ai: renderAI, me: renderMe,
-    myDuties: renderMyDuties, roster: renderRoster, myGrades: renderMyGrades
+    myDuties: renderMyDuties, roster: renderRoster, myGrades: renderMyGrades, memos: renderMemos
   };
   (renderers[id] || renderDashboard)();
 }
@@ -1480,17 +1489,42 @@ function toggleCompletion(dutyId, uid, done) {
 /* ================= VOTE (O/X 실명 투표) ================= */
 function renderVote() {
   const pid = currentPeriodId();
-  if (!pid) {
-    document.getElementById('pageContent').innerHTML = `<div class="card"><div class="empty">활성화된 투표 주기가 없어요</div></div>`;
-    return;
-  }
-  const period = cache.periods[pid];
   const others = Object.entries(cache.users || {}).filter(([uid]) => uid !== currentUser.uid);
-  const myVotes = (cache.votes[pid] || {});
+  const myVotes = pid ? (cache.votes[pid] || {}) : {};
 
-  document.getElementById('pageContent').innerHTML = `
+  const activePolls = Object.entries(cache.polls || {}).filter(([id, p]) => !p.closed)
+    .sort((a, b) => (b[1].createdAt || 0) - (a[1].createdAt || 0));
+
+  const pollsHtml = activePolls.length ? activePolls.map(([pollId, p]) => {
+    const votes = cache.pollVotes[pollId] || {};
+    const myAnswer = votes[currentUser.uid];
+    const tally = pollTally(pollId);
+    let voteUi;
+    if (p.type === 'ox') {
+      voteUi = `<div class="ox-btns" style="max-width:220px;">
+        <button class="o ${myAnswer === 'O' ? 'sel' : ''}" onclick="castPollVote('${pollId}','O')">O (${tally.counts['O'] || 0})</button>
+        <button class="x ${myAnswer === 'X' ? 'sel' : ''}" onclick="castPollVote('${pollId}','X')">X (${tally.counts['X'] || 0})</button>
+      </div>`;
+    } else {
+      voteUi = `<div style="display:flex; flex-direction:column; gap:6px;">
+        ${p.options.map((opt, i) => {
+          const optKey = String(i);
+          const sel = myAnswer === optKey;
+          return `<button class="btn ${sel ? '' : 'ghost'} small" style="justify-content:space-between;" onclick="castPollVote('${pollId}','${optKey}')">
+            <span>${i + 1}. ${esc(opt)}</span><span>${tally.counts[optKey] || 0}표</span>
+          </button>`;
+        }).join('')}
+      </div>`;
+    }
+    return `<div class="card">
+      <h2>📋 ${esc(p.question)} <span style="color:var(--text-dim);font-weight:600;font-size:12px;">· 총 ${tally.total}표</span></h2>
+      ${voteUi}
+    </div>`;
+  }).join('') : '';
+
+  const perfHtml = !pid ? `<div class="card"><div class="empty">활성화된 평가 주기가 없어요</div></div>` : `
     <div class="card">
-      <h2>${esc(period.label)} 투표 (실명)</h2>
+      <h2>${esc(cache.periods[pid].label)} 동료 평가 (실명 O/X)</h2>
       <div style="font-size:12px;color:var(--text-dim);margin-bottom:14px;">각 멤버가 1인1역을 잘 수행했는지 O/X로 평가해줘. 누가 투표했는지 관리자가 볼 수 있어.</div>
       <div class="vote-grid">
         ${others.length ? others.map(([uid, u]) => {
@@ -1505,6 +1539,18 @@ function renderVote() {
         }).join('') : `<div class="empty">투표할 다른 멤버가 없어요</div>`}
       </div>
     </div>`;
+
+  document.getElementById('pageContent').innerHTML = pollsHtml + perfHtml;
+}
+function pollTally(pollId) {
+  const votes = cache.pollVotes[pollId] || {};
+  const vals = Object.values(votes);
+  const counts = {};
+  vals.forEach(v => { counts[v] = (counts[v] || 0) + 1; });
+  return { counts, total: vals.length };
+}
+function castPollVote(pollId, answer) {
+  db.ref(`pollVotes/${pollId}/${currentUser.uid}`).set(answer).then(() => toast('투표했어'));
 }
 function castVote(targetUid, val) {
   const pid = currentPeriodId();
@@ -1733,6 +1779,79 @@ function renderMyGrades() {
   `;
 }
 
+/* ================= MEMOS (관리자 → 멤버 메모/알림) ================= */
+function sendMemo(toUid, message) {
+  const id = newKey('memos');
+  db.ref('memos/' + id).set({
+    toUid, message, sentBy: currentUser.uid, sentAt: Date.now(), read: false
+  }).then(() => toast('메모를 보냈어'));
+}
+function markMemoRead(id) {
+  db.ref('memos/' + id + '/read').set(true);
+}
+function deleteMemo(id) {
+  if (!confirm('이 메모를 삭제할까?')) return;
+  db.ref('memos/' + id).remove().then(() => toast('삭제했어'));
+}
+function openSendMemoModal() {
+  const users = Object.entries(cache.users || {});
+  openModal(`
+    <h3>메모 보내기</h3>
+    <div class="field"><label>받는 사람</label>
+      <select id="mMemoTo">${users.map(([uid, u]) => `<option value="${uid}">${esc(u.name)}</option>`).join('')}</select>
+    </div>
+    <div class="field"><label>내용</label><textarea id="mMemoText" rows="4" placeholder="예: 오늘 칠판 관리 잘 챙겨줘서 고마워 / 이번 주 청소 늦었어, 주의해줘"></textarea></div>
+    <div class="row" style="justify-content:flex-end;">
+      <button class="btn ghost" onclick="closeModal()">취소</button>
+      <button class="btn" onclick="submitSendMemo()">보내기</button>
+    </div>`);
+}
+function submitSendMemo() {
+  const toUid = document.getElementById('mMemoTo').value;
+  const text = document.getElementById('mMemoText').value.trim();
+  if (!text) { toast('내용을 입력해줘'); return; }
+  sendMemo(toUid, text);
+  closeModal();
+}
+
+function renderMemos() {
+  const myMemos = Object.entries(cache.memos || {}).filter(([id, m]) => m.toUid === currentUser.uid)
+    .sort((a, b) => (b[1].sentAt || 0) - (a[1].sentAt || 0));
+  // 열어보면 안읽음 자동으로 읽음 처리
+  myMemos.forEach(([id, m]) => { if (!m.read) markMemoRead(id); });
+
+  const sentByMe = isAdmin() ? Object.entries(cache.memos || {}).filter(([id, m]) => m.sentBy === currentUser.uid)
+    .sort((a, b) => (b[1].sentAt || 0) - (a[1].sentAt || 0)) : [];
+
+  document.getElementById('pageContent').innerHTML = `
+    ${isAdmin() ? `<div class="card">
+      <h2>메모 보내기</h2>
+      <button class="btn" onclick="openSendMemoModal()">+ 메모 작성</button>
+    </div>` : ''}
+    <div class="card">
+      <h2>받은 메모 ${myMemos.length ? `<span style="color:var(--text-dim);font-weight:600;font-size:12px;">${myMemos.length}건</span>` : ''}</h2>
+      ${myMemos.length ? myMemos.map(([id, m]) => `
+        <div class="list-item" style="align-items:flex-start;">
+          <span class="ldot" style="background:var(--indigo-b); margin-top:5px;"></span>
+          <span class="lname" style="font-weight:600;">
+            <div>${esc(m.message)}</div>
+            <div class="ntime" style="color:var(--text-dim); font-weight:400; font-size:11px; margin-top:3px;">${esc(userName(m.sentBy))} · ${m.sentAt ? new Date(m.sentAt).toLocaleString('ko-KR') : ''}</div>
+          </span>
+        </div>`).join('') : `<div class="empty">받은 메모가 없어요</div>`}
+    </div>
+    ${isAdmin() ? `<div class="card">
+      <h2>내가 보낸 메모</h2>
+      ${sentByMe.length ? sentByMe.map(([id, m]) => `
+        <div class="list-item">
+          <span class="ldot" style="background:${m.read ? 'var(--green-500)' : 'var(--gray-text)'}"></span>
+          <span class="lname">${esc(userName(m.toUid))} <span style="color:var(--text-dim);font-weight:400;font-size:11.5px;">· ${esc(m.message)}</span></span>
+          <span class="badge ${m.read ? 'resolved' : 'pending'}">${m.read ? '읽음' : '안읽음'}</span>
+          <button class="btn ghost small" onclick="deleteMemo('${id}')">삭제</button>
+        </div>`).join('') : `<div class="empty">보낸 메모가 없어요</div>`}
+    </div>` : ''}
+  `;
+}
+
 function renderMe() {
   const info = cache.users[currentUser.uid] || {};
   document.getElementById('pageContent').innerHTML = `
@@ -1776,6 +1895,7 @@ function renderSettings() {
   if (!isAdmin()) return renderNoAccess();
   const periods = Object.entries(cache.periods || {}).sort((a, b) => (b[1].createdAt || 0) - (a[1].createdAt || 0));
   const cats = Object.entries(cache.complaintCategories || {});
+  const polls = Object.entries(cache.polls || {}).sort((a, b) => (b[1].createdAt || 0) - (a[1].createdAt || 0));
   document.getElementById('pageContent').innerHTML = `
     <div class="card">
       <h2>투표 주기 <button class="btn small" style="margin-left:auto;" onclick="openCreatePeriodModal()">+ 새 주기</button></h2>
@@ -1793,6 +1913,28 @@ function renderSettings() {
       </table>
     </div>
     <div class="card">
+      <h2>설문 투표 <button class="btn small" style="margin-left:auto;" onclick="openCreatePollModal()">+ 설문 만들기</button></h2>
+      <div style="font-size:12px;color:var(--text-dim);margin-bottom:10px;">O/X 또는 객관식(1,2,3...) 설문을 만들 수 있어. "주간 투표" 탭에 자동으로 노출돼.</div>
+      <table>
+        <thead><tr><th>질문</th><th>형식</th><th>참여</th><th>상태</th><th></th></tr></thead>
+        <tbody>
+        ${polls.length ? polls.map(([id, p]) => {
+          const tally = pollTally(id);
+          return `<tr>
+            <td>${esc(p.question)}</td>
+            <td>${p.type === 'ox' ? 'O/X' : `객관식(${p.options.length})`}</td>
+            <td>${tally.total}표</td>
+            <td>${p.closed ? '<span class="badge pending">마감</span>' : '<span class="badge resolved">진행중</span>'}</td>
+            <td>
+              ${!p.closed ? `<button class="btn ghost small" onclick="closePoll('${id}')">마감</button>` : ''}
+              <button class="btn danger small" onclick="deletePoll('${id}')">삭제</button>
+            </td>
+          </tr>`;
+        }).join('') : `<tr><td colspan="5" class="empty">만든 설문이 없어요</td></tr>`}
+        </tbody>
+      </table>
+    </div>
+    <div class="card">
       <h2>민원 카테고리 <button class="btn small" style="margin-left:auto;" onclick="openCreateCategoryModal()">+ 카테고리</button></h2>
       <div style="display:flex;flex-wrap:wrap;gap:8px;">
         ${cats.length ? cats.map(([id, c]) => `
@@ -1802,6 +1944,49 @@ function renderSettings() {
           </span>`).join('') : `<div class="empty">카테고리가 없어요</div>`}
       </div>
     </div>`;
+}
+function openCreatePollModal() {
+  openModal(`
+    <h3>설문 만들기</h3>
+    <div class="field"><label>질문</label><input id="mPollQ" placeholder="예: 이번 학기 반장 후보는?"></div>
+    <div class="field"><label>형식</label>
+      <select id="mPollType" onchange="document.getElementById('mPollOptWrap').classList.toggle('hidden', this.value==='ox')">
+        <option value="ox">O / X</option>
+        <option value="choice">객관식 (1, 2, 3...)</option>
+      </select>
+    </div>
+    <div class="field hidden" id="mPollOptWrap">
+      <label>선택지 (한 줄에 하나씩)</label>
+      <textarea id="mPollOptions" rows="4" placeholder="철수&#10;영희&#10;민수"></textarea>
+    </div>
+    <div class="err-msg" id="mPollErr"></div>
+    <div class="row" style="justify-content:flex-end;">
+      <button class="btn ghost" onclick="closeModal()">취소</button>
+      <button class="btn" onclick="submitCreatePoll()">만들기</button>
+    </div>`);
+}
+function submitCreatePoll() {
+  const question = document.getElementById('mPollQ').value.trim();
+  const type = document.getElementById('mPollType').value;
+  const errEl = document.getElementById('mPollErr');
+  if (!question) { errEl.textContent = '질문을 입력해줘'; return; }
+  let options = [];
+  if (type === 'choice') {
+    options = document.getElementById('mPollOptions').value.split('\n').map(s => s.trim()).filter(Boolean);
+    if (options.length < 2) { errEl.textContent = '선택지를 2개 이상 입력해줘'; return; }
+  }
+  const id = newKey('polls');
+  db.ref('polls/' + id).set({ question, type, options, createdBy: currentUser.uid, createdAt: Date.now(), closed: false })
+    .then(() => { toast('설문을 만들었어'); closeModal(); });
+}
+function closePoll(id) {
+  db.ref('polls/' + id + '/closed').set(true).then(() => toast('설문을 마감했어'));
+}
+function deletePoll(id) {
+  if (!confirm('이 설문을 삭제할까? 투표 기록도 같이 삭제돼.')) return;
+  db.ref('polls/' + id).remove()
+    .then(() => db.ref('pollVotes/' + id).remove())
+    .then(() => toast('삭제했어'));
 }
 function openCreatePeriodModal() {
   openModal(`
