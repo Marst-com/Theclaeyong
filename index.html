@@ -176,6 +176,12 @@ td:first-child{ font-weight:700; color:var(--text); }
 .chip-color{ width:12px; height:12px; border-radius:4px; display:inline-block; margin-right:6px; vertical-align:-1px;}
 
 .empty{ text-align:center; padding:30px 10px; color:var(--text-dim); font-size:13px; }
+.info-banner{
+  background:var(--green-50); border:1px solid var(--green-100); border-radius:14px;
+  padding:12px 16px; font-size:13px; font-weight:500; color:var(--green-700);
+  margin-bottom:14px; line-height:1.5;
+}
+[data-theme="dark"] .info-banner{ background:var(--green-50); color:#6ee89a; border-color:var(--border); }
 
 .toast{
   position:fixed; bottom:88px; right:20px; background:var(--text); color:var(--bg);
@@ -218,37 +224,61 @@ td:first-child{ font-weight:700; color:var(--text); }
 .chat-system.end{ background:var(--gray-soft); color:var(--gray-text); }
 .chat-system.mention{ background:#fef3c7; color:#b45309; }
 .chat-poll{ background:var(--bg-elev2); border:1px solid var(--border); border-radius:14px; padding:10px 12px; align-self:center; max-width:90%; }
-.vote-card{ border:1px solid var(--border); border-radius:16px; padding:12px 14px; width:170px; background:var(--bg-elev2); }
-.vote-card .name{ font-weight:700; font-size:13px; margin-bottom:8px; }
-.ox-btns{ display:flex; gap:6px; }
-.ox-btns button{ flex:1; padding:8px 0; border-radius:10px; font-weight:800; font-size:13px; border:1px solid var(--border); background:var(--bg-elev); }
-.ox-btns button.o.sel{ background:var(--green-600); color:#fff; border-color:var(--green-600); }
-.ox-btns button.x.sel{ background:var(--danger); color:#fff; border-color:var(--danger); }
 
 /* ---------- Bottom tab bar (모바일) ---------- */
 .bottom-nav{ display:none; }
-@media(max-width:760px){
+
+/* ---- 태블릿 (768~1024px): 사이드바 좁게 + 아이콘만 ---- */
+@media(max-width:1024px) and (min-width:769px){
+  .sidebar{ width:64px; padding:14px 8px; overflow:hidden; }
+  .brand-text, .nav-item span:not(.badge), .nav-section-label, .sidebar-foot .theme-toggle, .user-chip span:not(.dot){ display:none; }
+  .nav-item{ justify-content:center; padding:12px 0; }
+  .nav-item svg{ width:20px; height:20px; margin:0; }
+  .sidebar-foot{ gap:6px; }
+  .user-chip{ justify-content:center; padding:10px 0; }
+  .sidebar-foot button.btn{ display:none; }
+  .main{ padding:22px 20px 40px; }
+}
+
+/* ---- 모바일 (≤768px): 사이드바 숨김 + 하단탭 ---- */
+@media(max-width:768px){
   .sidebar{ display:none; }
-  .main{ padding:20px 16px 96px; }
+  .app.active{ flex-direction:column; }
+  .main{ padding:16px 14px 96px; max-height:none; }
+  .grid2,.grid3{ grid-template-columns:1fr; }
+  .tile-grid{ grid-template-columns:repeat(3,1fr); gap:10px; }
+  .card{ padding:16px 14px; }
+  table{ font-size:12px; }
+  th,td{ padding:7px 6px; }
   .bottom-nav{
     display:flex; position:fixed; bottom:0; left:0; right:0; background:var(--bg-elev);
-    border-top:1px solid var(--border); padding:8px 4px calc(8px + env(safe-area-inset-bottom));
-    z-index:500; box-shadow:0 -4px 14px rgba(0,0,0,.05);
+    border-top:1px solid var(--border);
+    padding:6px 2px calc(6px + env(safe-area-inset-bottom));
+    z-index:500; box-shadow:0 -4px 18px rgba(0,0,0,.08);
   }
   .bottom-nav button{
-    flex:1; display:flex; flex-direction:column; align-items:center; gap:3px; font-size:10.5px;
+    flex:1; display:flex; flex-direction:column; align-items:center; gap:2px; font-size:10px;
     color:var(--gray-text); font-weight:600; padding:4px 0; position:relative;
+    transition:color .15s;
   }
   .bottom-nav button.active{ color:var(--green-600); }
-  .bottom-nav button svg{ width:20px; height:20px; }
+  .bottom-nav button svg{ width:22px; height:22px; stroke-width:1.8; }
   .bottom-nav .bnbadge{
-    position:absolute; top:-1px; right:calc(50% - 16px); background:var(--danger); color:#fff; font-size:9px; font-weight:800;
-    min-width:14px; height:14px; border-radius:99px; display:flex; align-items:center; justify-content:center; padding:0 3px;
+    position:absolute; top:0px; right:calc(50% - 18px); background:var(--danger); color:#fff; font-size:9px; font-weight:800;
+    min-width:15px; height:15px; border-radius:99px; display:flex; align-items:center; justify-content:center; padding:0 3px;
   }
+  /* 모달 모바일 최적화 */
+  .modal{ max-height:92vh; border-radius:22px 22px 0 0; }
+  .modal-bg{ align-items:flex-end; }
+  /* 히어로 카드 모바일 */
+  .hero-card{ border-radius:18px; padding:18px 18px; }
+  .hero-card .hval{ font-size:26px; }
+  /* 공지/채팅 인풋 영역 */
+  .chat-wrap{ max-height:42vh; }
 }
 
 .hidden{ display:none !important; }
-::-webkit-scrollbar{ width:8px; height:8px; } ::-webkit-scrollbar-thumb{ background:var(--border); border-radius:8px; }
+::-webkit-scrollbar{ width:6px; height:6px; } ::-webkit-scrollbar-thumb{ background:var(--border); border-radius:8px; }
 </style>
 </head>
 <body>
@@ -363,9 +393,9 @@ const cache = {
   completions: {},         // periodId -> dutyId -> uid -> {done, checkedBy, checkedAt}
   votes: {},               // periodId -> targetUid -> voterUid -> 'O'|'X'
   grades: {},              // periodId -> uid -> {autoGrade, finalGrade, overridden}
-  complaintCategories: {}, // catId -> {title, color}
-  complaints: {},          // id -> {categoryId, title, content, targetUid, submittedBy, status, createdAt}
+  complaints: {},          // id -> {title, content, targetUid, submittedBy, status, createdAt}
   applicationVotes: {},    // dutyId -> applicantUid -> voterUid -> 'O'|'X'
+  notices: {},             // id -> {title, content, createdBy, createdAt, pinned}
   polls: {},               // pollId -> {question, type:'ox'|'choice', options:[], createdBy, createdAt, closed}
   pollVotes: {},           // pollId -> voterUid -> answer
   memos: {},                // id -> {toUid, message, sentBy, sentAt, read}
@@ -409,7 +439,7 @@ function init() {
 
 function attachRealtimeListeners() {
   if (!dbReady) return;
-  const paths = ['users', 'duties', 'periods', 'completions', 'votes', 'grades', 'complaintCategories', 'complaints', 'applicationVotes', 'polls', 'pollVotes', 'memos', 'groupSets', 'meetings', 'meetingModeratorVotes', 'meetingMessages', 'settings'];
+  const paths = ['users', 'duties', 'periods', 'completions', 'votes', 'grades', 'complaints', 'applicationVotes', 'notices', 'polls', 'pollVotes', 'memos', 'groupSets', 'meetings', 'meetingModeratorVotes', 'settings'];
   paths.forEach(path => {
     db.ref(path).on('value', snap => {
       const val = snap.val() || (path === 'settings' ? { currentPeriodId: null, voteCycle: 'weekly', gradeThresholds: { a: 90, b: 75, c: 50 } } : {});
@@ -419,8 +449,23 @@ function attachRealtimeListeners() {
   });
 }
 
+// meetingMessages는 회의 입장할 때만 해당 회의 것만 구독
+let activeMeetingListener = null;
+function subscribeMeetingMessages(meetingId) {
+  if (activeMeetingListener) {
+    db.ref(`meetingMessages/${activeMeetingListener}`).off();
+    activeMeetingListener = null;
+  }
+  if (!meetingId) return;
+  activeMeetingListener = meetingId;
+  db.ref(`meetingMessages/${meetingId}`).on('value', snap => {
+    if (!cache.meetingMessages) cache.meetingMessages = {};
+    cache.meetingMessages[meetingId] = snap.val() || {};
+    afterCacheUpdate('meetingMessages');
+  });
+}
+
 function afterCacheUpdate(path) {
-  // 최초 로드 후 setup/login 화면 여부 판단
   if (path === 'users') {
     const hasUsers = Object.keys(cache.users || {}).length > 0;
     if (!currentUser) {
@@ -428,7 +473,32 @@ function afterCacheUpdate(path) {
       document.getElementById('loginScreen').classList.toggle('hidden', !hasUsers);
     }
   }
-  if (currentUser) renderPage(currentPage);
+  if (!currentUser) return;
+
+  // 회의 채팅방, AI 채팅: input에 포커스가 있으면 전체 리렌더 건너뜀
+  // meetingMessages/meetingModeratorVotes 업데이트면 채팅 영역만 부분 리렌더
+  if (path === 'meetingMessages' || path === 'meetingModeratorVotes') {
+    if (currentPage === 'meetings' && openMeetingId) {
+      const focused = document.activeElement;
+      const inp = document.getElementById('meetingChatInput');
+      if (inp && focused === inp) {
+        // 포커스 있는 동안은 채팅 영역만 업데이트
+        const wrap = document.getElementById('chatWrap');
+        if (wrap) {
+          const msgs = Object.entries(cache.meetingMessages[openMeetingId] || {}).sort((a, b) => (a[1].createdAt || 0) - (b[1].createdAt || 0));
+          wrap.innerHTML = msgs.length ? msgs.map(([msgId, msg]) => renderChatMessage(openMeetingId, msgId, msg)).join('') : `<div class="empty">아직 메시지가 없어요</div>`;
+          wrap.scrollTop = wrap.scrollHeight;
+        }
+        return;
+      }
+    }
+  }
+
+  // AI 채팅 탭은 리렌더 건너뜀 (대화 중 방해 X)
+  if (currentPage === 'ai') return;
+
+  buildNav();
+  renderPage(currentPage);
 }
 
 function tryRestoreSession() {
@@ -446,7 +516,13 @@ function tryRestoreSession() {
 }
 
 /* ================= AUTH ================= */
-function handleSetup() {
+/* ---- 비밀번호 해싱 (Web Crypto API / SHA-256) ---- */
+async function hashPassword(pw) {
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(pw));
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+async function handleSetup() {
   const name = document.getElementById('setupName').value.trim();
   const pw = document.getElementById('setupPw').value;
   const errEl = document.getElementById('setupErr');
@@ -454,10 +530,10 @@ function handleSetup() {
   if (!dbReady) { errEl.textContent = 'Firebase 설정이 필요해요 (app.js 상단 참고)'; return; }
   if (!name || !pw) { errEl.textContent = '이름과 비밀번호를 모두 입력해줘'; return; }
   if (pw.length < 4) { errEl.textContent = '비밀번호는 4자 이상으로 해줘'; return; }
-
+  const pwHash = await hashPassword(pw);
   const uid = db.ref('users').push().key;
   db.ref('users/' + uid).set({
-    name, password: pw, systemRole: 'admin', createdAt: Date.now()
+    name, password: pwHash, systemRole: 'admin', createdAt: Date.now()
   }).then(() => {
     currentUser = { uid, name, systemRole: 'admin' };
     localStorage.setItem('session', JSON.stringify({ uid }));
@@ -465,17 +541,31 @@ function handleSetup() {
   }).catch(e => errEl.textContent = '생성 실패: ' + e.message);
 }
 
-function handleLogin() {
+async function handleLogin() {
   const name = document.getElementById('loginName').value.trim();
   const pw = document.getElementById('loginPw').value;
   const errEl = document.getElementById('loginErr');
   errEl.textContent = '';
   if (!dbReady) { errEl.textContent = 'Firebase 설정이 필요해요 (app.js 상단 참고)'; return; }
   if (!name || !pw) { errEl.textContent = '이름과 비밀번호를 입력해줘'; return; }
-
-  const entry = Object.entries(cache.users || {}).find(([id, u]) => u.name === name && u.password === pw);
-  if (!entry) { errEl.textContent = '이름 또는 비밀번호가 맞지 않아'; return; }
-
+  const pwHash = await hashPassword(pw);
+  const entry = Object.entries(cache.users || {}).find(([id, u]) => u.name === name && u.password === pwHash);
+  if (!entry) {
+    // 구버전 평문 호환: 해시 실패 시 평문으로도 한번 더 비교 (마이그레이션용)
+    const legacyEntry = Object.entries(cache.users || {}).find(([id, u]) => u.name === name && u.password === pw);
+    if (legacyEntry) {
+      // 평문 → 해시로 자동 마이그레이션
+      const [legacyUid] = legacyEntry;
+      await db.ref('users/' + legacyUid + '/password').set(pwHash);
+      const [uid, u] = legacyEntry;
+      currentUser = { uid, name: u.name, systemRole: u.systemRole };
+      localStorage.setItem('session', JSON.stringify({ uid }));
+      enterApp();
+      return;
+    }
+    errEl.textContent = '이름 또는 비밀번호가 맞지 않아';
+    return;
+  }
   const [uid, u] = entry;
   currentUser = { uid, name: u.name, systemRole: u.systemRole };
   localStorage.setItem('session', JSON.stringify({ uid }));
@@ -601,17 +691,26 @@ const NAV_ICONS = {
   myGrades: '<path d="M12 20v-6M6 20V10M18 20V4"/>',
   memos: '<path d="M4 4h16v12H7l-3 3V4z"/><path d="M8 9h8M8 12h5"/>',
   groups: '<circle cx="8" cy="8" r="3"/><circle cx="16" cy="8" r="3"/><path d="M2 20v-1a5 5 0 0 1 5-5h2a5 5 0 0 1 5 5v1"/><path d="M14 14h2a5 5 0 0 1 5 5v1"/>',
-  meetings: '<path d="M8 4H5a2 2 0 0 0-2 2v14l4-4h11a2 2 0 0 0 2-2V9"/><path d="M14 3l4 4-8 8H6v-4z"/>'
+  meetings: '<path d="M8 4H5a2 2 0 0 0-2 2v14l4-4h11a2 2 0 0 0 2-2V9"/><path d="M14 3l4 4-8 8H6v-4z"/>',
+  notices: '<path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/><circle cx="12" cy="3" r="1"/>'
 };
 
 function navBadgeCount(id) {
   const pid = currentPeriodId();
+  if (id === 'notices') {
+    const lastSeen = Number(localStorage.getItem('noticesSeen') || 0);
+    return Object.values(cache.notices || {}).filter(n => (n.createdAt || 0) > lastSeen).length;
+  }
   if (id === 'meetings') {
     return Object.entries(cache.meetings || {}).filter(([mid, m]) =>
       m.status === 'setup' && m.moderatorMode === 'vote' &&
       m.participantIds && m.participantIds[currentUser.uid] &&
       !((cache.meetingModeratorVotes[mid] || {})[currentUser.uid])
     ).length;
+  }
+  if (id === 'notices') {
+    const readNotices = JSON.parse(localStorage.getItem('readNotices') || '[]');
+    return Object.keys(cache.notices || {}).filter(id => !readNotices.includes(id)).length;
   }
   if (id === 'memos') {
     return Object.values(cache.memos || {}).filter(m => m.toUid === currentUser.uid && !m.read).length;
@@ -664,16 +763,15 @@ function navBadgeCount(id) {
 
 function navItemsList() {
   const items = [{ id: 'dashboard', label: '대시보드', section: '메인' }];
-  items.push({ id: 'apply', label: '1인1역 신청', section: '1인1역' });
-  items.push({ id: 'myDuties', label: '내 1인1역', section: '1인1역' });
-  if (isManagerOfAny()) items.push({ id: 'checks', label: '임무 확인', section: '1인1역' });
-  items.push({ id: 'roster', label: '멤버 현황판', section: '1인1역' });
-  items.push({ id: 'vote', label: '투표', section: '참여' });
-  items.push({ id: 'complaints', label: '민원', section: '참여' });
-  items.push({ id: 'myGrades', label: '등급 히스토리', section: '참여' });
-  items.push({ id: 'memos', label: '메모함', section: '소통' });
-  items.push({ id: 'groups', label: '모둠 정하기', section: '소통' });
-  items.push({ id: 'meetings', label: '회의', section: '소통' });
+  items.push({ id: 'myDuties', label: '내 1인1역', section: '활동' });
+  items.push({ id: 'vote', label: '투표', section: '활동' });
+  items.push({ id: 'complaints', label: '민원', section: '활동' });
+  items.push({ id: 'memos', label: '메모함', section: '활동' });
+  items.push({ id: 'notices', label: '공지사항', section: '활동' });
+  items.push({ id: 'apply', label: '1인1역 신청', section: '더보기' });
+  items.push({ id: 'groups', label: '모둠 정하기', section: '더보기' });
+  items.push({ id: 'meetings', label: '회의', section: '더보기' });
+  if (isManagerOfAny()) items.push({ id: 'checks', label: '임무 확인', section: '더보기' });
   if (isAdmin()) {
     items.push({ id: 'ai', label: 'AI 브리핑', section: '관리자' });
     items.push({ id: 'accounts', label: '계정 관리', section: '관리자' });
@@ -770,7 +868,8 @@ function renderPage(id) {
     myGrades: ['등급 히스토리', '주기별로 내가 받은 등급을 확인해요'],
     memos: ['메모함', '관리자가 보낸 메모와 알림을 확인해요'],
     groups: ['모둠 정하기', '자동 또는 수동으로 모둠을 편성해요'],
-    meetings: ['회의', '회의를 만들고 채팅으로 진행해요']
+    meetings: ['회의', '회의를 만들고 채팅으로 진행해요'],
+    notices: ['공지사항', '전체 공지를 확인하고 등록해요']
   };
   const [title, sub] = titleMap[id] || ['', ''];
   document.getElementById('pageTitle').textContent = title;
@@ -780,7 +879,8 @@ function renderPage(id) {
     dashboard: renderDashboard, accounts: renderAccounts, duties: renderDuties, apply: renderApply,
     checks: renderChecks, vote: renderVote, grades: renderGrades,
     complaints: renderComplaints, settings: renderSettings, ai: renderAI, me: renderMe,
-    myDuties: renderMyDuties, roster: renderRoster, myGrades: renderMyGrades, memos: renderMemos, groups: renderGroups, meetings: renderMeetings
+    myDuties: renderMyDuties, memos: renderMemos, groups: renderGroups, meetings: renderMeetings,
+    notices: renderNotices
   };
   (renderers[id] || renderDashboard)();
 }
@@ -812,15 +912,15 @@ function renderDashboard() {
 
   // 타일: 주요 메뉴 바로가기
   const tileDefs = [
+    { id: 'myDuties', label: '내 1인1역' },
     { id: 'vote', label: '투표' },
     { id: 'complaints', label: '민원' },
     { id: 'memos', label: '메모함' },
     { id: 'meetings', label: '회의' },
-    { id: 'groups', label: '모둠 정하기' },
   ];
   if (isManagerOfAny()) tileDefs.unshift({ id: 'checks', label: '임무 확인' });
   if (isAdmin()) {
-    tileDefs.push({ id: 'ai', label: 'AI 브리핑' }, { id: 'accounts', label: '계정 관리' }, { id: 'duties', label: '1인1역 관리' }, { id: 'grades', label: '등급 관리' }, { id: 'settings', label: '설정' });
+    tileDefs.push({ id: 'ai', label: 'AI 브리핑' }, { id: 'accounts', label: '계정 관리' }, { id: 'duties', label: '1인1역 관리' }, { id: 'grades', label: '등급 관리' });
   }
 
   // 체크리스트: 내가 관리하는 1인1역 대상자들의 완료 현황 (관리자 있을 때만), 없으면 이번 주기 투표 현황
@@ -947,7 +1047,8 @@ function openCreateAccountModal() {
       <button class="btn" onclick="submitCreateAccount()">생성</button>
     </div>`);
 }
-function submitCreateAccount() {
+async function submitCreateAccount() {
+  if (!isAdmin()) { toast('관리자만 계정을 만들 수 있어'); closeModal(); return; }
   const name = document.getElementById('mAccName').value.trim();
   const pw = document.getElementById('mAccPw').value;
   const role = document.getElementById('mAccRole').value;
@@ -955,16 +1056,19 @@ function submitCreateAccount() {
   if (!name || !pw) { errEl.textContent = '이름과 비밀번호를 입력해줘'; return; }
   if (pw.length < 4) { errEl.textContent = '비밀번호는 4자 이상'; return; }
   if (Object.values(cache.users).some(u => u.name === name)) { errEl.textContent = '이미 있는 이름이야'; return; }
+  const pwHash = await hashPassword(pw);
   const uid = newKey('users');
-  db.ref('users/' + uid).set({ name, password: pw, systemRole: role, createdAt: Date.now() })
+  db.ref('users/' + uid).set({ name, password: pwHash, systemRole: role, createdAt: Date.now() })
     .then(() => { toast('계정을 만들었어'); closeModal(); });
 }
 function toggleAdmin(uid) {
+  if (!isAdmin()) { toast('권한 없어'); return; }
   const u = cache.users[uid];
   db.ref('users/' + uid + '/systemRole').set(u.systemRole === 'admin' ? 'user' : 'admin')
     .then(() => toast('권한을 변경했어'));
 }
 function deleteAccount(uid) {
+  if (!isAdmin()) { toast('권한 없어'); return; }
   if (!confirm(userName(uid) + ' 계정을 삭제할까?')) return;
   db.ref('users/' + uid).remove().then(() => toast('삭제했어'));
 }
@@ -978,190 +1082,287 @@ function renderNoAccess() {
 function dutyApplications(dutyId) {
   return (cache.duties[dutyId] && cache.duties[dutyId].applications) || {};
 }
-function applicationVoteTally(dutyId, applicantUid) {
-  const votes = (cache.applicationVotes[dutyId] || {})[applicantUid] || {};
-  const vals = Object.values(votes);
-  return { o: vals.filter(v => v === 'O').length, x: vals.filter(v => v === 'X').length, total: vals.length, mine: votes[currentUser.uid] };
-}
 function applyForDuty(dutyId) {
   db.ref(`duties/${dutyId}/applications/${currentUser.uid}`).set({
     appliedAt: Date.now(), status: 'pending'
-  }).then(() => toast('신청했어! 동료들 투표를 기다려줘'));
+  }).then(() => toast('신청했어! 관리자가 검토할 거야'));
 }
 function withdrawApplication(dutyId) {
   if (!confirm('신청을 취소할까?')) return;
   db.ref(`duties/${dutyId}/applications/${currentUser.uid}`).remove()
-    .then(() => db.ref(`applicationVotes/${dutyId}/${currentUser.uid}`).remove())
     .then(() => toast('신청을 취소했어'));
 }
-function castApplicationVote(dutyId, applicantUid, val) {
-  db.ref(`applicationVotes/${dutyId}/${applicantUid}/${currentUser.uid}`).set(val)
-    .then(() => toast('투표했어'));
-}
 function approveApplication(dutyId, applicantUid) {
-  db.ref(`duties/${dutyId}/memberIds/${applicantUid}`).set(true)
+if (!isAdmin()) { toast("권한 없어"); return; }
+    db.ref(`duties/${dutyId}/memberIds/${applicantUid}`).set(true)
     .then(() => db.ref(`duties/${dutyId}/applications/${applicantUid}/status`).set('approved'))
     .then(() => toast('승인했어. 멤버로 추가됐어'));
 }
 function rejectApplication(dutyId, applicantUid) {
-  db.ref(`duties/${dutyId}/applications/${applicantUid}/status`).set('rejected')
+if (!isAdmin()) { toast("권한 없어"); return; }
+    db.ref(`duties/${dutyId}/applications/${applicantUid}/status`).set('rejected')
     .then(() => toast('거절 처리했어'));
 }
 
 function renderApply() {
   const duties = Object.entries(cache.duties || {});
-
-  // 1) 신청 가능한 1인1역 (아직 멤버도 아니고 신청도 안 한 것)
   const applicable = duties.filter(([id, d]) => !(d.memberIds && d.memberIds[currentUser.uid]) && !(dutyApplications(id)[currentUser.uid]));
-
-  // 2) 내 신청 현황
   const mine = duties.filter(([id]) => dutyApplications(id)[currentUser.uid]);
-
-  // 3) 동료 신청 투표 (다른 사람이 낸 pending 신청들)
-  const othersPending = [];
-  duties.forEach(([dutyId, d]) => {
-    Object.entries(dutyApplications(dutyId)).forEach(([applicantUid, a]) => {
-      if (a.status === 'pending' && applicantUid !== currentUser.uid) {
-        othersPending.push({ dutyId, duty: d, applicantUid, a });
-      }
-    });
-  });
-
-  // 4) 관리자용: 전체 대기중 신청 + 투표집계
-  const adminPending = [];
-  if (isAdmin()) {
-    duties.forEach(([dutyId, d]) => {
-      Object.entries(dutyApplications(dutyId)).forEach(([applicantUid, a]) => {
-        if (a.status === 'pending') adminPending.push({ dutyId, duty: d, applicantUid, a });
-      });
-    });
-  }
+  const adminPending = isAdmin() ? duties.flatMap(([dutyId, d]) =>
+    Object.entries(dutyApplications(dutyId)).filter(([, a]) => a.status === 'pending').map(([uid, a]) => ({ dutyId, duty: d, uid, a }))
+  ) : [];
 
   document.getElementById('pageContent').innerHTML = `
+    <div class="info-banner">📝 하고 싶은 1인1역을 신청하면 관리자가 검토 후 승인해줘. 승인되면 자동으로 해당 역할 멤버로 등록돼.</div>
     <div class="card">
       <h2>신청 가능한 1인1역</h2>
       ${applicable.length ? `<div class="tile-grid">
         ${applicable.map(([id, d]) => `
           <button class="tile" onclick="applyForDuty('${id}')">
-            <span class="ticon" style="background:${d.color}22;"><span class="chip-color" style="background:${d.color};width:18px;height:18px;border-radius:6px;margin:0;"></span></span>
+            <span class="ticon" style="background:${d.color}22;">
+              <span style="width:18px;height:18px;border-radius:6px;background:${d.color};display:inline-block;"></span>
+            </span>
             <span class="tlabel">${esc(d.title)}</span>
           </button>`).join('')}
-      </div>` : `<div class="empty">신청할 수 있는 1인1역이 없어요 (이미 다 신청했거나 멤버로 등록돼 있어요)</div>`}
+      </div>` : `<div class="empty">지금 신청할 수 있는 1인1역이 없어요</div>`}
     </div>
-
     <div class="card">
       <h2>내 신청 현황</h2>
       ${mine.length ? mine.map(([id, d]) => {
         const a = dutyApplications(id)[currentUser.uid];
-        const tally = applicationVoteTally(id, currentUser.uid);
-        const statusLabel = a.status === 'pending' ? '투표 진행중' : a.status === 'approved' ? '승인됨' : '거절됨';
+        const statusLabel = a.status === 'pending' ? '검토 중' : a.status === 'approved' ? '✅ 승인됨' : '❌ 거절됨';
         const statusClass = a.status === 'pending' ? 'pending' : a.status === 'approved' ? 'resolved' : 'grade-D';
         return `<div class="list-item">
           <span class="ldot" style="background:${d.color}"></span>
-          <span class="lname">${esc(d.title)} <span style="color:var(--text-dim);font-weight:400;font-size:11.5px;">· O ${tally.o} / X ${tally.x}</span></span>
+          <span class="lname">${esc(d.title)}</span>
           <span class="badge ${statusClass}">${statusLabel}</span>
           ${a.status === 'pending' ? `<button class="btn ghost small" onclick="withdrawApplication('${id}')">취소</button>` : ''}
         </div>`;
       }).join('') : `<div class="empty">신청한 1인1역이 없어요</div>`}
     </div>
-
+    ${isAdmin() && adminPending.length ? `
     <div class="card">
-      <h2>동료 신청 투표</h2>
-      ${othersPending.length ? `<div class="vote-grid">
-        ${othersPending.map(({ dutyId, duty, applicantUid, a }) => {
-          const tally = applicationVoteTally(dutyId, applicantUid);
-          return `<div class="vote-card">
-            <div class="name">${esc(userName(applicantUid))}</div>
-            <div style="font-size:11px;color:var(--text-dim);margin-bottom:8px;">${esc(duty.title)} · O ${tally.o} / X ${tally.x}</div>
-            <div class="ox-btns">
-              <button class="o ${tally.mine === 'O' ? 'sel' : ''}" onclick="castApplicationVote('${dutyId}','${applicantUid}','O')">O</button>
-              <button class="x ${tally.mine === 'X' ? 'sel' : ''}" onclick="castApplicationVote('${dutyId}','${applicantUid}','X')">X</button>
-            </div>
-          </div>`;
-        }).join('')}
-      </div>` : `<div class="empty">투표할 신청이 없어요</div>`}
-    </div>
-
-    ${isAdmin() ? `
-    <div class="card">
-      <h2>신청 승인 관리</h2>
-      <table>
-        <thead><tr><th>신청자</th><th>1인1역</th><th>O</th><th>X</th><th></th></tr></thead>
-        <tbody>
-        ${adminPending.length ? adminPending.map(({ dutyId, duty, applicantUid }) => {
-          const tally = applicationVoteTally(dutyId, applicantUid);
-          return `<tr>
-            <td>${esc(userName(applicantUid))}</td>
-            <td><span class="chip-color" style="background:${duty.color}"></span>${esc(duty.title)}</td>
-            <td>${tally.o}</td>
-            <td>${tally.x}</td>
-            <td>
-              <button class="btn small" onclick="approveApplication('${dutyId}','${applicantUid}')">승인</button>
-              <button class="btn ghost small" onclick="rejectApplication('${dutyId}','${applicantUid}')">거절</button>
-            </td>
-          </tr>`;
-        }).join('') : `<tr><td colspan="5" class="empty">대기중인 신청이 없어요</td></tr>`}
-        </tbody>
-      </table>
+      <h2>승인 대기 <span style="color:var(--text-dim);font-weight:600;font-size:12px;">· ${adminPending.length}건</span></h2>
+      ${adminPending.map(({ dutyId, duty, uid }) => `
+        <div class="list-item">
+          <span class="ldot" style="background:${duty.color}"></span>
+          <span class="lname"><b>${esc(userName(uid))}</b> <span style="color:var(--text-dim);font-size:11.5px;">→ ${esc(duty.title)}</span></span>
+          <button class="btn small" onclick="approveApplication('${dutyId}','${uid}')">승인</button>
+          <button class="btn ghost small" onclick="rejectApplication('${dutyId}','${uid}')">거절</button>
+        </div>`).join('')}
     </div>` : ''}
   `;
 }
 
 
-/* ================= AI 브리핑 (패턴형, API 호출 없음) ================= */
-let aiLog = []; // {topic} 목록. 렌더 시점마다 최신 데이터로 다시 계산해서 항상 최신 상태 유지
+/* ================= AI 브리핑 (자유 질문 + 자연어 응답) ================= */
+let aiConversation = []; // [{role:'user'|'ai', text, html, ts}]
 
-const AI_TOPICS = {
-  summary: { q: '오늘 전체 요약 브리핑해줘', gen: aiGenFullSummary },
-  complaints: { q: '민원 내역 알려줘', gen: aiGenComplaints },
-  resolvedComplaints: { q: '해결된 민원 내역 알려줘', gen: aiGenResolvedComplaints },
-  complaintTargets: { q: '민원 많이 받은 사람 알려줘', gen: aiGenComplaintTargets },
-  applications: { q: '1인1역 신청 현황 알려줘', gen: aiGenApplications },
-  recommend: { q: '신청 승인/거절 추천해줘', gen: aiGenRecommend },
-  applicationHistory: { q: '신청 승인/거절 이력 알려줘', gen: aiGenApplicationHistory },
-  checks: { q: '임무 완료 현황 알려줘', gen: aiGenChecks },
-  lowestCompletion: { q: '완료율 낮은 1인1역 순위 알려줘', gen: aiGenLowestCompletion },
-  votes: { q: '투표 진행 상황 알려줘', gen: aiGenVotes },
-  notVoted: { q: '아직 투표 안 한 사람 알려줘', gen: aiGenNotVoted },
-  topO: { q: 'O 제일 많이 받은 사람 알려줘', gen: aiGenTopO },
-  topX: { q: 'X 제일 많이 받은 사람 알려줘', gen: aiGenTopX },
-  grades: { q: '등급 분포 알려줘', gen: aiGenGradeDistribution },
-  dutyRoster: { q: '1인1역별 인원 현황 알려줘', gen: aiGenDutyRoster },
-  memberOverview: { q: '전체 인원 현황 알려줘', gen: aiGenMemberOverview },
-  noMember: { q: '멤버 없는 1인1역 알려줘', gen: aiGenDutiesNoMember },
-  adminList: { q: '전체관리자 목록 알려줘', gen: aiGenAdminList },
-  recentAccounts: { q: '최근 가입한 멤버 알려줘', gen: aiGenRecentAccounts }
-};
+/* ---------- 자연어 응답 엔진 ---------- */
+const AI_INTENTS = [
+  { keys: ['안녕','ㅎㅇ','헬로','hello','hi','반가'], weight: 1, fn: aiReplyGreet },
+  { keys: ['요약','브리핑','종합','전체','오늘 뭐','뭐 해야','뭐부터'], weight: 2, fn: aiReplyFullSummary },
+  { keys: ['민원','클레임','불만','신고'], weight: 2, fn: aiReplyComplaints },
+  { keys: ['해결된 민원','처리된 민원','닫힌','완료된 민원'], weight: 3, fn: aiReplyResolvedComplaints },
+  { keys: ['신청','지원','지원자'], weight: 2, fn: aiReplyApplications },
+  { keys: ['승인 추천','거절 추천','누구 뽑','누구 승인','선발'], weight: 3, fn: aiReplyRecommend },
+  { keys: ['임무','완료','체크','달성','미완료'], weight: 2, fn: aiReplyChecks },
+  { keys: ['완료율','달성률','비율'], weight: 3, fn: aiReplyCompletion },
+  { keys: ['투표','동료평가','ox','o/x','평가'], weight: 2, fn: aiReplyVotes },
+  { keys: ['아직 투표 안','투표 안 한','미투표'], weight: 3, fn: aiReplyNotVoted },
+  { keys: ['등급','학점','성적','순위','랭킹','grading'], weight: 2, fn: aiReplyGrades },
+  { keys: ['멤버','인원','명단','회원','몇 명','몇명'], weight: 2, fn: aiReplyRoster },
+  { keys: ['관리자','어드민'], weight: 2, fn: aiReplyAdmins },
+  { keys: ['최근 가입','신규 멤버','새로 온'], weight: 3, fn: aiReplyRecentAccounts },
+  { keys: ['1인1역','역할 현황','역할 비어','멤버 없'], weight: 2, fn: aiReplyDutyRoster },
+  { keys: ['모둠','그룹 편성','팀 구성'], weight: 2, fn: aiReplyGroups },
+  { keys: ['회의','미팅'], weight: 2, fn: aiReplyMeetings },
+  { keys: ['메모','쪽지','안읽'], weight: 2, fn: aiReplyMemos },
+  { keys: ['공지','알림'], weight: 2, fn: aiReplyNoticesAI },
+  { keys: ['주기','기간','언제','이번 주','이번 달'], weight: 2, fn: aiReplyPeriod },
+  { keys: ['설문','poll','폴'], weight: 2, fn: aiReplyPolls },
+  { keys: ['도움','뭐 물어','어떻게 써','help','사용법','명령어'], weight: 1, fn: aiReplyHelp },
+  { keys: ['누가 제일','최고','1위','가장 많','탑'], weight: 2, fn: aiReplyTopStats },
+  { keys: ['문제','주의','위험','경고','이상'], weight: 2, fn: aiReplyProblems },
+];
 
-function aiTextBlock(lines) {
-  return `<div style="white-space:pre-wrap; line-height:1.7;">${esc(lines.join('\n'))}</div>`;
+function aiNLU(text) {
+  const t = text.toLowerCase().replace(/[?？]/g, '');
+  const scores = new Map();
+  for (const intent of AI_INTENTS) {
+    let score = 0;
+    for (const k of intent.keys) {
+      if (t.includes(k)) score += intent.weight;
+    }
+    if (score > 0) scores.set(intent, score);
+  }
+  if (!scores.size) return [];
+  // 최고점 기준으로 70% 이상인 인텐트만 선택 (노이즈 필터)
+  const maxScore = Math.max(...scores.values());
+  const threshold = maxScore * 0.7;
+  return [...scores.entries()].filter(([, s]) => s >= threshold).map(([i]) => i.fn);
 }
 
-function aiGenComplaints() {
-  const pending = Object.entries(cache.complaints || {}).filter(([id, c]) => c.status === 'pending');
-  if (!pending.length) return aiTextBlock(['지금 대기중인 민원은 없어. 다 처리된 상태야.']);
-  const lines = [`지금 대기중인 민원이 ${pending.length}건 있어.`];
-  pending.forEach(([id, c]) => {
-    const cat = cache.complaintCategories[c.categoryId];
-    lines.push(`· [${cat ? cat.title : '분류없음'}] "${c.title}" — ${userName(c.submittedBy)} 제출${c.targetUid ? `, 대상: ${userName(c.targetUid)}` : ''}`);
+function aiAnswer(text) {
+  const t = text.trim();
+  if (!t) return aiProse(['질문을 입력해줘!']);
+  const fns = aiNLU(t);
+  if (!fns.length) return aiUnknown(t);
+  if (fns.length === 1) return fns[0](t);
+  const parts = fns.map(fn => fn(t));
+  return parts.join('<hr style="border:none;border-top:1px solid var(--border);margin:12px 0;">');
+}
+
+function aiUnknown(text) {
+  const pid = currentPeriodId();
+  const totalMembers = Object.keys(cache.users || {}).length;
+  const suggestions = ['오늘 요약해줘', '민원 있어?', '투표 현황', '임무 완료율', '문제 있는 거 알려줘'];
+  return aiProse([
+    `🤔 "<b>${esc(text)}</b>"에 정확히 맞는 데이터를 못 찾았어.`,
+    `현재 멤버 ${totalMembers}명${pid ? `, 주기 "<b>${esc(cache.periods[pid].label)}</b>" 진행 중` : ''}이야.`,
+    `이런 질문을 해봐: <span style="color:var(--green-600);">${suggestions.map(s => `"${s}"`).join(' · ')}</span>`
+  ]);
+}
+
+function aiProse(sentences) {
+  return `<div style="line-height:1.9;font-size:13.5px;">${sentences.join('<br>')}</div>`;
+}
+
+// 추가 인텐트 응답 함수들
+function aiReplyNotVoted() {
+  const pid = currentPeriodId();
+  if (!pid) return aiProse(['활성화된 투표 주기가 없어.']);
+  const voterActivity = {};
+  Object.values(cache.votes[pid] || {}).forEach(v => Object.keys(v).forEach(uid => { voterActivity[uid] = true; }));
+  const notVotedUids = Object.entries(cache.users || {}).filter(([uid]) => !voterActivity[uid]);
+  if (!notVotedUids.length) return aiProse(['🎉 <b>전원</b>이 이번 주기 투표에 참여했어!']);
+  return aiProse([
+    `아직 투표 안 한 사람이 <b>${notVotedUids.length}명</b> 있어.`,
+    ...notVotedUids.slice(0, 8).map(([, u]) => `· ${esc(u.name)}`)
+  ]);
+}
+
+function aiReplyTopStats() {
+  const pid = currentPeriodId();
+  if (!pid) return aiProse(['활성화된 주기가 없어.']);
+  const ranked = Object.entries(cache.users || {}).map(([uid, u]) => {
+    const votes = Object.values((cache.votes[pid] || {})[uid] || {});
+    const o = votes.filter(v => v === 'O').length;
+    return { name: u.name, o, total: votes.length, pct: votes.length ? Math.round(o / votes.length * 100) : 0 };
+  }).filter(r => r.total > 0).sort((a, b) => b.pct - a.pct);
+  if (!ranked.length) return aiProse(['아직 집계할 투표 결과가 없어.']);
+  const lines = [`🏆 이번 주기 O 득표율 순위야.`];
+  ranked.slice(0, 5).forEach((r, i) => {
+    const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `${i+1}.`;
+    lines.push(`${medal} <b>${esc(r.name)}</b> — ${r.pct}% (O ${r.o}/${r.total})`);
   });
-  return aiTextBlock(lines);
+  return aiProse(lines);
 }
 
-function aiGenApplications() {
+function aiReplyProblems() {
+  const lines = [];
+  // 1. 미처리 민원
+  const pendingC = Object.values(cache.complaints || {}).filter(c => c.status === 'pending');
+  if (pendingC.length) lines.push(`⚠️ 미처리 민원 <b>${pendingC.length}건</b>`);
+  // 2. 멤버 없는 1인1역
+  const emptyDuties = Object.values(cache.duties || {}).filter(d => !Object.keys(d.memberIds || {}).length);
+  if (emptyDuties.length) lines.push(`⚠️ 멤버 없는 1인1역 <b>${emptyDuties.length}개</b>: ${emptyDuties.map(d => esc(d.title)).join(', ')}`);
+  // 3. 투표 미참여
+  const pid = currentPeriodId();
+  if (pid) {
+    const voterActivity = {};
+    Object.values(cache.votes[pid] || {}).forEach(v => Object.keys(v).forEach(uid => { voterActivity[uid] = true; }));
+    const notVoted = Object.keys(cache.users || {}).filter(uid => !voterActivity[uid]);
+    if (notVoted.length) lines.push(`⚠️ 이번 주기 미투표 <b>${notVoted.length}명</b>`);
+  }
+  // 4. 대기중인 신청
+  const pendingApps = Object.values(cache.duties || {}).reduce((s, d) =>
+    s + Object.values(d.applications || {}).filter(a => a.status === 'pending').length, 0);
+  if (pendingApps) lines.push(`⚠️ 승인 대기 신청 <b>${pendingApps}건</b>`);
+  if (!lines.length) return aiProse(['✅ 현재 확인이 필요한 문제가 없어! 다 잘 돌아가고 있어.']);
+  return aiProse([`🔍 지금 확인이 필요한 항목이야.`, ...lines]);
+}
+
+function aiReplyNoticesAI() {
+  const list = Object.entries(cache.notices || {}).sort((a, b) => (b[1].createdAt || 0) - (a[1].createdAt || 0));
+  if (!list.length) return aiProse(['아직 등록된 공지사항이 없어.']);
+  const lines = [`📢 최근 공지사항 <b>${list.length}건</b>이야.`];
+  list.slice(0, 3).forEach(([, n]) => {
+    lines.push(`· ${n.pinned ? '📌 ' : ''}<b>${esc(n.title)}</b>`);
+  });
+  return aiProse(lines);
+}
+
+function aiReplyGreet() {
+  const hour = new Date().getHours();
+  const greet = hour < 12 ? '좋은 아침이야' : hour < 18 ? '안녕' : '안녕, 오늘도 수고했어';
+  const pid = currentPeriod();
+  const pending = Object.values(cache.complaints || {}).filter(c => c.status === 'pending').length;
+  const appsPending = Object.values(cache.duties || {}).reduce((s, d) => s + Object.values(d.applications || {}).filter(a => a.status === 'pending').length, 0);
+  const lines = [`👋 ${greet}! 나는 1인1역 관리 AI야.`];
+  if (pid) lines.push(`지금 활성 주기는 <b>${esc(pid.label)}</b>이야.`);
+  if (pending) lines.push(`대기 중인 민원이 <b>${pending}건</b> 있어.`);
+  if (appsPending) lines.push(`승인 대기 중인 1인1역 신청이 <b>${appsPending}건</b> 있어.`);
+  lines.push('뭐가 궁금해? 자유롭게 물어봐.');
+  return aiProse(lines);
+}
+
+function aiReplyFullSummary() {
+  const pid = currentPeriodId();
+  const period = currentPeriod();
+  const totalMembers = Object.keys(cache.users || {}).length;
+  const pendingComplaints = Object.values(cache.complaints || {}).filter(c => c.status === 'pending').length;
+  const appsPending = [];
+  Object.entries(cache.duties || {}).forEach(([dutyId, d]) => {
+    Object.entries(d.applications || {}).forEach(([uid, a]) => { if (a.status === 'pending') appsPending.push({ dutyTitle: d.title, name: userName(uid) }); });
+  });
+  let checksDone = 0, checksTotal = 0;
+  if (pid) {
+    Object.entries(cache.duties || {}).forEach(([dutyId, d]) => {
+      Object.keys(d.memberIds || {}).forEach(uid => {
+        checksTotal++;
+        if ((((cache.completions[pid] || {})[dutyId] || {})[uid] || {}).done) checksDone++;
+      });
+    });
+  }
+  const lines = [`📊 <b>오늘의 전체 요약</b>`, `전체 멤버 ${totalMembers}명`];
+  if (period) lines.push(`현재 주기: <b>${esc(period.label)}</b>`);
+  lines.push(pendingComplaints ? `⚠️ 미처리 민원 <b>${pendingComplaints}건</b>` : `✅ 미처리 민원 없음`);
+  lines.push(appsPending.length ? `📋 신청 승인 대기 <b>${appsPending.length}건</b>: ${appsPending.map(r => `${esc(r.name)}(${esc(r.dutyTitle)})`).join(', ')}` : `✅ 대기 중인 신청 없음`);
+  if (pid) lines.push(checksTotal ? `📝 임무 완료율 <b>${Math.round(checksDone / checksTotal * 100)}%</b> (${checksDone}/${checksTotal})` : `임무 완료 대상자 없음`);
+  return aiProse(lines);
+}
+
+function aiReplyComplaints() {
+  const pending = Object.entries(cache.complaints || {}).filter(([, c]) => c.status === 'pending');
+  if (!pending.length) return aiProse(['✅ 현재 대기 중인 민원은 없어. 다 처리됐어.']);
+  const lines = [`⚠️ 대기 중인 민원 <b>${pending.length}건</b>이야.`];
+  pending.slice(0, 5).forEach(([, c]) => {
+    const cat = '';
+    lines.push(`· [${esc(cat)}] <b>${esc(c.title)}</b> — ${esc(userName(c.submittedBy))} 제출${c.targetUid ? `, 대상: ${esc(userName(c.targetUid))}` : ''}`);
+  });
+  if (pending.length > 5) lines.push(`... 외 ${pending.length - 5}건 더 있어.`);
+  return aiProse(lines);
+}
+
+function aiReplyResolvedComplaints() {
+  const done = Object.entries(cache.complaints || {}).filter(([, c]) => c.status === 'resolved');
+  if (!done.length) return aiProse(['아직 해결 처리된 민원이 없어.']);
+  return aiProse([`✅ 해결된 민원 총 <b>${done.length}건</b>이야.`,
+    ...done.slice(0, 5).map(([, c]) => `· <b>${esc(c.title)}</b> — ${esc(userName(c.submittedBy))} 제출`)
+  ]);
+}
+
+function aiReplyApplications() {
   const rows = [];
   Object.entries(cache.duties || {}).forEach(([id, d]) => {
-    const apps = Object.entries(dutyApplications(id)).filter(([uid, a]) => a.status === 'pending');
-    if (apps.length) {
-      const names = apps.map(([uid]) => {
-        const t = applicationVoteTally(id, uid);
-        return `${userName(uid)}(O${t.o}/X${t.x})`;
-      }).join(', ');
-      rows.push(`· ${d.title}: ${apps.length}명 — ${names}`);
-    }
+    Object.entries(d.applications || {}).filter(([, a]) => a.status === 'pending').forEach(([uid]) => {
+      const t = { o:0, x:0 };
+      rows.push(`· <b>${esc(userName(uid))}</b> → ${esc(d.title)} (O ${t.o} / X ${t.x})`);
+    });
   });
-  if (!rows.length) return aiTextBlock(['지금 대기중인 1인1역 신청은 없어.']);
-  return aiTextBlock(['대기중인 신청이 있는 1인1역이야.', ...rows]);
+  if (!rows.length) return aiProse(['📋 현재 대기 중인 1인1역 신청이 없어.']);
+  return aiProse([`📋 승인 대기 중인 신청 <b>${rows.length}건</b>이야.`, ...rows.slice(0, 6)]);
 }
 
 function aiRecommendRows() {
@@ -1169,7 +1370,7 @@ function aiRecommendRows() {
   Object.entries(cache.duties || {}).forEach(([dutyId, d]) => {
     Object.entries(dutyApplications(dutyId)).forEach(([uid, a]) => {
       if (a.status !== 'pending') return;
-      const t = applicationVoteTally(dutyId, uid);
+      const t = { o: 0, x: 0, total: 0 }; // 동료투표 제거됨
       let verdict, cls, dot;
       if (t.total === 0) { verdict = '투표 없음 · 보류'; cls = 'pending'; dot = 'var(--gray-text)'; }
       else if (t.o > t.x) { verdict = '승인 추천'; cls = 'resolved'; dot = 'var(--green-500)'; }
@@ -1180,251 +1381,268 @@ function aiRecommendRows() {
   });
   return rows;
 }
-function aiGenRecommend() {
-  const rows = aiRecommendRows();
-  if (!rows.length) return `<div class="empty">지금 대기중인 신청이 없어.</div>`;
-  return rows.map(r => `
-    <div class="list-item">
-      <span class="ldot" style="background:${r.dot}"></span>
-      <span class="lname">${esc(r.name)} <span style="color:var(--text-dim);font-weight:400;font-size:11.5px;">· ${esc(r.dutyTitle)} · O${r.o}/X${r.x}</span></span>
-      <span class="badge ${r.cls}">${r.verdict}</span>
-      <button class="btn small" onclick="aiApprove('${r.dutyId}','${r.uid}')">승인</button>
-      <button class="btn ghost small" onclick="aiReject('${r.dutyId}','${r.uid}')">거절</button>
-    </div>`).join('');
-}
 function aiApprove(dutyId, uid) { approveApplication(dutyId, uid); }
 function aiReject(dutyId, uid) { rejectApplication(dutyId, uid); }
 
-function aiGenChecks() {
+function aiReplyRecommend() {
+  const rows = aiRecommendRows();
+  if (!rows.length) return aiProse(['대기 중인 신청이 없어서 추천할 게 없어.']);
+  const lines = ['🤖 투표 결과 기반 추천이야.'];
+  rows.forEach(r => {
+    const emoji = r.verdict.includes('승인') ? '✅' : r.verdict.includes('거절') ? '❌' : '⚖️';
+    lines.push(`${emoji} <b>${esc(r.name)}</b>(${esc(r.dutyTitle)}) — ${r.verdict} (O ${r.o}/X ${r.x})`);
+  });
+  return aiProse(lines) + rows.map(r => `
+    <div style="display:flex;gap:6px;margin-top:6px;">
+      <button class="btn small" onclick="aiApprove('${r.dutyId}','${r.uid}')">✅ ${esc(r.name)} 승인</button>
+      <button class="btn ghost small" onclick="aiReject('${r.dutyId}','${r.uid}')">❌ 거절</button>
+    </div>`).join('');
+}
+
+function aiReplyChecks() {
   const pid = currentPeriodId();
-  if (!pid) return aiTextBlock(['아직 활성화된 주기가 없어서 확인할 게 없어.']);
-  const rows = [];
+  if (!pid) return aiProse(['활성화된 주기가 없어서 확인할 게 없어.']);
+  const undone = [], done = [];
   Object.entries(cache.duties || {}).forEach(([dutyId, d]) => {
-    const src = d.memberIds || {};
-    const undone = Object.keys(src).filter(uid => {
-      const c = (((cache.completions[pid] || {})[dutyId] || {})[uid]) || {};
-      return !c.done;
+    Object.keys(d.memberIds || {}).forEach(uid => {
+      const c = (((cache.completions[pid] || {})[dutyId] || {})[uid] || {});
+      (c.done ? done : undone).push(`${esc(userName(uid))}(${esc(d.title)})`);
     });
-    if (undone.length) rows.push(`· ${d.title}: ${undone.map(uid => userName(uid)).join(', ')} 미완료`);
   });
-  if (!rows.length) return aiTextBlock(['이번 주기 임무는 다 완료됐어.']);
-  return aiTextBlock(['아직 완료 안 된 임무가 있어.', ...rows]);
+  if (!undone.length && !done.length) return aiProse(['임무 대상자가 아직 없어.']);
+  const lines = [`📝 임무 현황 — 완료 <b>${done.length}</b>건, 미완료 <b>${undone.length}</b>건`];
+  if (undone.length) lines.push(`⏳ 미완료: ${undone.slice(0, 5).join(', ')}${undone.length > 5 ? ` 외 ${undone.length - 5}명` : ''}`);
+  if (done.length) lines.push(`✅ 완료: ${done.slice(0, 5).join(', ')}${done.length > 5 ? ` 외 ${done.length - 5}명` : ''}`);
+  return aiProse(lines);
 }
 
-function aiGenVotes() {
+function aiReplyVotes() {
   const pid = currentPeriodId();
-  if (!pid) return aiTextBlock(['아직 활성화된 투표 주기가 없어.']);
+  if (!pid) return aiProse(['활성화된 투표 주기가 없어.']);
   const total = Object.keys(cache.users || {}).length;
-  const rows = Object.entries(cache.users || {}).map(([uid, u]) => {
-    const c = Object.keys((cache.votes[pid] || {})[uid] || {}).length;
-    return `· ${u.name}: ${c}/${Math.max(total - 1, 0)}표`;
-  });
-  return aiTextBlock([`${cache.periods[pid].label} 투표 진행 상황이야.`, ...rows]);
-}
-
-function aiGenNotVoted() {
-  const pid = currentPeriodId();
-  if (!pid) return aiTextBlock(['아직 활성화된 투표 주기가 없어.']);
-  // "투표 안 함" = 이 사람이 다른 누구에게도 O/X를 아직 안 던진 경우
   const voterActivity = {};
-  Object.values(cache.votes[pid] || {}).forEach(votersForTarget => {
-    Object.keys(votersForTarget).forEach(voterUid => { voterActivity[voterUid] = true; });
-  });
-  const notVoted = Object.entries(cache.users || {}).filter(([uid]) => !voterActivity[uid]);
-  if (!notVoted.length) return aiTextBlock(['전원 최소 한 번은 투표에 참여했어.']);
-  return aiTextBlock([`아직 한 표도 안 던진 사람이야 (${notVoted.length}명).`, ...notVoted.map(([uid, u]) => `· ${u.name}`)]);
+  Object.values(cache.votes[pid] || {}).forEach(v => Object.keys(v).forEach(uid => { voterActivity[uid] = true; }));
+  const notVoted = Object.values(cache.users || {}).filter((u, i, a) => !voterActivity[Object.keys(cache.users)[i]]);
+  const notVotedUids = Object.entries(cache.users || {}).filter(([uid]) => !voterActivity[uid]);
+  const lines = [
+    `🗳️ <b>${esc(cache.periods[pid].label)}</b> 투표 현황`,
+    `전체 ${total}명 중 <b>${Object.keys(voterActivity).length}명</b>이 투표에 참여했어.`
+  ];
+  if (notVotedUids.length) lines.push(`아직 투표 안 한 사람: ${notVotedUids.slice(0, 5).map(([, u]) => esc(u.name)).join(', ')}${notVotedUids.length > 5 ? ` 외 ${notVotedUids.length - 5}명` : ''}`);
+  else lines.push('✅ 전원 투표에 참여했어!');
+  return aiProse(lines);
 }
 
-function aiGenTopO() {
+function aiReplyGrades() {
   const pid = currentPeriodId();
-  if (!pid) return aiTextBlock(['아직 활성화된 투표 주기가 없어.']);
-  const rows = Object.entries(cache.users || {}).map(([uid, u]) => {
-    const votes = Object.values((cache.votes[pid] || {})[uid] || {});
-    return { name: u.name, o: votes.filter(v => v === 'O').length, total: votes.length };
-  }).filter(r => r.total > 0).sort((a, b) => b.o - a.o).slice(0, 5);
-  if (!rows.length) return aiTextBlock(['아직 집계할 투표 결과가 없어.']);
-  return aiTextBlock(['O 많이 받은 순위야.', ...rows.map((r, i) => `${i + 1}. ${r.name} — O ${r.o}/${r.total}`)]);
-}
-
-function aiGenTopX() {
-  const pid = currentPeriodId();
-  if (!pid) return aiTextBlock(['아직 활성화된 투표 주기가 없어.']);
-  const rows = Object.entries(cache.users || {}).map(([uid, u]) => {
-    const votes = Object.values((cache.votes[pid] || {})[uid] || {});
-    return { name: u.name, x: votes.filter(v => v === 'X').length, total: votes.length };
-  }).filter(r => r.total > 0 && r.x > 0).sort((a, b) => b.x - a.x).slice(0, 5);
-  if (!rows.length) return aiTextBlock(['X 받은 사람이 아직 없어.']);
-  return aiTextBlock(['X 많이 받은(요주의) 순위야.', ...rows.map((r, i) => `${i + 1}. ${r.name} — X ${r.x}/${r.total}`)]);
-}
-
-function aiGenGradeDistribution() {
-  const pid = currentPeriodId();
-  if (!pid) return aiTextBlock(['아직 활성화된 투표 주기가 없어.']);
-  const grades = { A: [], B: [], C: [], D: [], 미평가: [] };
+  if (!pid) return aiProse(['활성화된 주기가 없어.']);
+  const dist = { A: [], B: [], C: [], D: [], 미평가: [] };
   Object.entries(cache.users || {}).forEach(([uid, u]) => {
     const g = ((cache.grades[pid] || {})[uid]) || {};
-    const grade = g.finalGrade || g.autoGrade;
-    (grades[grade] || grades.미평가).push(u.name);
+    const grade = g.finalGrade || g.autoGrade || '미평가';
+    (dist[grade] || dist['미평가']).push(u.name);
   });
-  const lines = ['A', 'B', 'C', 'D', '미평가'].map(k => `· ${k}: ${grades[k].length}명${grades[k].length ? ' (' + grades[k].join(', ') + ')' : ''}`);
-  return aiTextBlock([`${cache.periods[pid].label} 등급 분포야.`, ...lines]);
+  const lines = [`🏅 <b>${esc(cache.periods[pid].label)}</b> 등급 분포`];
+  ['A', 'B', 'C', 'D', '미평가'].forEach(g => {
+    if (dist[g].length) lines.push(`${g === 'A' ? '🥇' : g === 'B' ? '🥈' : g === 'C' ? '🥉' : g === 'D' ? '📉' : '⬜'} <b>${g}</b>: ${dist[g].length}명 (${dist[g].slice(0, 4).join(', ')}${dist[g].length > 4 ? ' ...' : ''})`);
+  });
+  return aiProse(lines);
 }
 
-function aiGenDutyRoster() {
-  const duties = Object.entries(cache.duties || {});
-  if (!duties.length) return aiTextBlock(['아직 만들어진 1인1역이 없어.']);
-  const lines = duties.map(([id, d]) => `· ${d.title}: 멤버 ${Object.keys(d.memberIds || {}).length}명, 관리자 ${Object.keys(d.managerIds || {}).length}명`);
-  return aiTextBlock(['1인1역별 인원 현황이야.', ...lines]);
-}
-
-function aiGenDutiesNoMember() {
-  const rows = Object.entries(cache.duties || {}).filter(([id, d]) => !Object.keys(d.memberIds || {}).length);
-  if (!rows.length) return aiTextBlock(['모든 1인1역에 멤버가 최소 1명 이상 있어.']);
-  return aiTextBlock(['멤버가 없는 1인1역이야.', ...rows.map(([id, d]) => `· ${d.title}`)]);
-}
-
-function aiGenMemberOverview() {
-  const users = Object.values(cache.users || {});
-  const admins = users.filter(u => u.systemRole === 'admin').length;
+function aiReplyRoster() {
+  const total = Object.keys(cache.users || {}).length;
+  const admins = Object.values(cache.users || {}).filter(u => u.systemRole === 'admin');
   const duties = Object.keys(cache.duties || {}).length;
-  const period = currentPeriod();
-  return aiTextBlock([
-    `전체 멤버 ${users.length}명 (그중 전체관리자 ${admins}명)`,
-    `1인1역 ${duties}개`,
-    period ? `현재 주기: ${period.label} (${period.type === 'weekly' ? '주간' : '월간'})` : '현재 활성화된 주기 없음'
+  return aiProse([
+    `👥 현재 멤버 <b>${total}명</b>이야.`,
+    `전체관리자 <b>${admins.length}명</b>: ${admins.slice(0, 4).map(u => esc(u.name)).join(', ')}${admins.length > 4 ? ' ...' : ''}`,
+    `1인1역 <b>${duties}개</b>가 운영 중이야.`
   ]);
 }
 
-function aiGenAdminList() {
+function aiReplyAdmins() {
   const admins = Object.values(cache.users || {}).filter(u => u.systemRole === 'admin');
-  if (!admins.length) return aiTextBlock(['등록된 전체관리자가 없어.']);
-  return aiTextBlock([`전체관리자 ${admins.length}명이야.`, ...admins.map(u => `· ${u.name}`)]);
+  if (!admins.length) return aiProse(['등록된 전체관리자가 없어.']);
+  return aiProse([`🔑 전체관리자 <b>${admins.length}명</b>이야.`, ...admins.map(u => `· ${esc(u.name)}`)]);
 }
 
-function aiGenRecentAccounts() {
+function aiReplyRecentAccounts() {
   const rows = Object.values(cache.users || {}).sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0)).slice(0, 5);
-  if (!rows.length) return aiTextBlock(['등록된 계정이 없어.']);
-  return aiTextBlock(['최근 가입한 멤버 순이야.', ...rows.map(u => `· ${u.name} (${u.createdAt ? new Date(u.createdAt).toLocaleDateString('ko-KR') : '-'})`)]);
+  return aiProse([`🆕 최근 가입한 멤버야.`, ...rows.map(u => `· <b>${esc(u.name)}</b> (${u.createdAt ? new Date(u.createdAt).toLocaleDateString('ko-KR') : '-'})`)]);
 }
 
-function aiGenResolvedComplaints() {
-  const rows = Object.entries(cache.complaints || {}).filter(([id, c]) => c.status === 'resolved')
-    .sort((a, b) => (b[1].resolvedAt || 0) - (a[1].resolvedAt || 0));
-  if (!rows.length) return aiTextBlock(['아직 해결 처리된 민원이 없어.']);
-  const lines = rows.map(([id, c]) => {
-    const cat = cache.complaintCategories[c.categoryId];
-    return `· [${cat ? cat.title : '분류없음'}] "${c.title}" — ${userName(c.submittedBy)} 제출, ${c.resolvedBy ? userName(c.resolvedBy) + ' 처리' : ''}`;
-  });
-  return aiTextBlock([`해결된 민원 ${rows.length}건이야.`, ...lines]);
-}
-
-function aiGenComplaintTargets() {
-  const tally = {};
-  Object.values(cache.complaints || {}).forEach(c => {
-    if (c.targetUid) tally[c.targetUid] = (tally[c.targetUid] || 0) + 1;
-  });
-  const rows = Object.entries(tally).sort((a, b) => b[1] - a[1]);
-  if (!rows.length) return aiTextBlock(['대상자가 지정된 민원이 아직 없어.']);
-  return aiTextBlock(['민원 많이 받은 순위야.', ...rows.map(([uid, n], i) => `${i + 1}. ${userName(uid)} — ${n}건`)]);
-}
-
-function aiGenLowestCompletion() {
+function aiReplyCompletion() {
   const pid = currentPeriodId();
-  if (!pid) return aiTextBlock(['아직 활성화된 주기가 없어.']);
+  if (!pid) return aiProse(['활성화된 주기가 없어.']);
   const rows = Object.entries(cache.duties || {}).map(([dutyId, d]) => {
-    const src = d.memberIds || {};
-    const ids = Object.keys(src);
+    const ids = Object.keys(d.memberIds || {});
     if (!ids.length) return null;
     const done = ids.filter(uid => (((cache.completions[pid] || {})[dutyId] || {})[uid] || {}).done).length;
-    return { title: d.title, rate: Math.round((done / ids.length) * 100), done, total: ids.length };
+    return { title: d.title, rate: Math.round(done / ids.length * 100), done, total: ids.length };
   }).filter(Boolean).sort((a, b) => a.rate - b.rate);
-  if (!rows.length) return aiTextBlock(['완료율을 계산할 대상자가 있는 1인1역이 없어.']);
-  return aiTextBlock(['완료율 낮은 순 1인1역이야.', ...rows.map((r, i) => `${i + 1}. ${r.title} — ${r.rate}% (${r.done}/${r.total})`)]);
+  if (!rows.length) return aiProse(['임무 완료율을 계산할 수 있는 역할이 없어.']);
+  const lines = [`📊 1인1역별 임무 완료율이야.`];
+  rows.forEach(r => { lines.push(`${r.rate >= 80 ? '✅' : r.rate >= 50 ? '⚠️' : '❌'} <b>${esc(r.title)}</b>: ${r.rate}% (${r.done}/${r.total})`); });
+  return aiProse(lines);
 }
 
-function aiGenApplicationHistory() {
-  const rows = [];
-  Object.entries(cache.duties || {}).forEach(([id, d]) => {
-    Object.entries(dutyApplications(id)).forEach(([uid, a]) => {
-      if (a.status === 'pending') return;
-      rows.push({ dutyTitle: d.title, name: userName(uid), status: a.status, appliedAt: a.appliedAt || 0 });
-    });
+function aiReplyDutyRoster() {
+  const duties = Object.entries(cache.duties || {});
+  if (!duties.length) return aiProse(['아직 만들어진 1인1역이 없어.']);
+  const lines = ['📋 1인1역 현황이야.'];
+  duties.forEach(([, d]) => {
+    const cnt = Object.keys(d.memberIds || {}).length;
+    lines.push(`· <b>${esc(d.title)}</b>: ${cnt}명${cnt === 0 ? ' ⚠️ (멤버 없음)' : ''}`);
   });
-  if (!rows.length) return aiTextBlock(['아직 승인/거절 처리된 신청 이력이 없어.']);
-  rows.sort((a, b) => b.appliedAt - a.appliedAt);
-  return aiTextBlock(['신청 처리 이력이야.', ...rows.map(r => `· ${r.name} → ${r.dutyTitle}: ${r.status === 'approved' ? '승인됨' : '거절됨'}`)]);
+  return aiProse(lines);
 }
 
-function aiGenFullSummary() {
-  const parts = [
-    '=== 민원 ===', htmlToPlain(aiGenComplaints()),
-    '', '=== 1인1역 신청 ===', htmlToPlain(aiGenApplications()),
-    '', '=== 임무 완료 ===', htmlToPlain(aiGenChecks()),
-    '', '=== 관리 공백 ===', htmlToPlain(aiGenDutiesNoMember())
-  ];
-  return `<div style="white-space:pre-wrap; line-height:1.7;">${parts.join('\n')}</div>`;
-}
-function htmlToPlain(html) {
-  const div = document.createElement('div');
-  div.innerHTML = html;
-  return div.textContent || '';
+function aiReplyGroups() {
+  const sets = Object.entries(cache.groupSets || {});
+  if (!sets.length) return aiProse(['아직 만들어진 모둠이 없어.']);
+  const lines = [`👥 모둠 편성 <b>${sets.length}개</b>가 있어.`];
+  sets.slice(0, 3).forEach(([, s]) => {
+    const gc = Object.keys(s.groups || {}).length;
+    lines.push(`· <b>${esc(s.title)}</b>: ${gc}모둠`);
+  });
+  return aiProse(lines);
 }
 
-function askAI(topic) {
-  aiLog.push({ topic });
+function aiReplyMeetings() {
+  const all = Object.entries(cache.meetings || {});
+  const active = all.filter(([, m]) => m.status === 'active');
+  const setup = all.filter(([, m]) => m.status === 'setup');
+  const lines = [`💬 회의 현황이야.`];
+  if (active.length) lines.push(`🟢 진행 중: ${active.map(([, m]) => `<b>${esc(m.title)}</b>`).join(', ')}`);
+  if (setup.length) lines.push(`🟡 준비 중: ${setup.map(([, m]) => `<b>${esc(m.title)}</b>`).join(', ')}`);
+  if (!active.length && !setup.length) lines.push('현재 진행 중이거나 준비 중인 회의가 없어.');
+  lines.push(`전체 ${all.length}개 회의 기록이 있어.`);
+  return aiProse(lines);
+}
+
+function aiReplyMemos() {
+  if (!isAdmin()) {
+    const mine = Object.values(cache.memos || {}).filter(m => m.toUid === currentUser.uid);
+    return aiProse([`📨 내게 온 메모 <b>${mine.length}건</b>이야.`]);
+  }
+  const unread = Object.values(cache.memos || {}).filter(m => !m.read);
+  const total = Object.keys(cache.memos || {}).length;
+  return aiProse([`📨 전체 메모 <b>${total}건</b>, 안 읽은 메모 <b>${unread.length}건</b>이야.`]);
+}
+
+function aiReplyPeriod() {
+  const pid = currentPeriodId();
+  const period = currentPeriod();
+  const all = Object.entries(cache.periods || {}).sort((a, b) => (b[1].createdAt || 0) - (a[1].createdAt || 0));
+  if (!pid) return aiProse(['현재 활성화된 주기가 없어. 관리자가 설정에서 주기를 만들어야 해.']);
+  return aiProse([
+    `📅 현재 주기: <b>${esc(period.label)}</b> (${period.type === 'weekly' ? '주간' : '월간'})`,
+    `총 ${all.length}개 주기 기록이 있어.`
+  ]);
+}
+
+function aiReplyPolls() {
+  const active = Object.entries(cache.polls || {}).filter(([, p]) => !p.closed);
+  const closed = Object.entries(cache.polls || {}).filter(([, p]) => p.closed);
+  const lines = [`📊 설문 현황이야.`];
+  if (active.length) lines.push(`진행 중인 설문 <b>${active.length}개</b>: ${active.map(([, p]) => esc(p.question)).slice(0, 3).join(', ')}`);
+  else lines.push('현재 진행 중인 설문이 없어.');
+  if (closed.length) lines.push(`마감된 설문 ${closed.length}개가 있어.`);
+  return aiProse(lines);
+}
+
+function aiReplyHelp() {
+  return aiProse([
+    '💡 이런 걸 물어볼 수 있어:',
+    '· "오늘 전체 요약해줘" — 전체 현황 브리핑',
+    '· "민원 있어?" — 대기 중인 민원 확인',
+    '· "신청 승인 추천해줘" — O/X 투표 기반 추천 + 버튼',
+    '· "투표 진행 상황" — 이번 주기 동료 평가 현황',
+    '· "등급 어떻게 돼?" — 등급 분포 확인',
+    '· "임무 완료율 알려줘" — 1인1역별 달성률',
+    '· "회의 현황" / "모둠 현황" / "메모 있어?" 등',
+    '자유롭게 질문해봐!'
+  ]);
+}
+
+/* ---------- 대화 렌더링 ---------- */
+function aiSend() {
+  const input = document.getElementById('aiChatInput');
+  if (!input) return;
+  const text = input.value.trim();
+  if (!text) return;
+  input.value = '';
+  aiConversation.push({ role: 'user', text, ts: Date.now() });
+  // 짧은 딜레이 후 응답 (더 자연스럽게)
+  const answerHtml = aiAnswer(text);
+  setTimeout(() => {
+    aiConversation.push({ role: 'ai', text: '', html: answerHtml, ts: Date.now() });
+    renderPage('ai');
+    setTimeout(() => {
+      const wrap = document.getElementById('aiChatWrap');
+      if (wrap) wrap.scrollTop = wrap.scrollHeight;
+    }, 50);
+  }, 320);
   renderPage('ai');
 }
-function clearAiLog() { aiLog = []; renderPage('ai'); }
+function aiClearChat() { aiConversation = []; renderPage('ai'); }
 
 function renderAI() {
-  document.getElementById('pageContent').innerHTML = `
-    <div class="card">
-      <h2>무엇을 확인할까?</h2>
-      <div class="field" style="margin-bottom:12px;">
-        <input id="aiSearchInput" list="aiTopicDatalist" placeholder="질문 검색... (예: 민원, 등급, 완료율)"
-          oninput="filterAiTopics()" onkeydown="if(event.key==='Enter'){ aiSearchSubmit(); }">
-        <datalist id="aiTopicDatalist">
-          ${Object.values(AI_TOPICS).map(t => `<option value="${esc(t.q)}"></option>`).join('')}
-        </datalist>
-      </div>
-      <div id="aiTopicButtons" style="display:flex; flex-wrap:wrap; gap:8px;">
-        ${aiTopicButtonsHtml('')}
-      </div>
-      ${aiLog.length ? `<div style="margin-top:10px;"><button class="btn ghost small" onclick="clearAiLog()">대화 지우기</button></div>` : ''}
-    </div>
-    ${aiLog.length ? aiLog.map(entry => {
-      const t = AI_TOPICS[entry.topic];
-      return `
-      <div class="card">
-        <h2>💬 ${esc(t.q)}</h2>
-        ${t.gen()}
+  if (!isAdmin()) { document.getElementById('pageContent').innerHTML = `<div class="card"><div class="empty">관리자만 접근할 수 있어요</div></div>`; return; }
+  const chatHtml = aiConversation.map(msg => {
+    if (msg.role === 'user') return `
+      <div style="display:flex;justify-content:flex-end;margin-bottom:10px;">
+        <div style="background:var(--green-600);color:#fff;border-radius:16px 16px 4px 16px;padding:10px 14px;max-width:78%;font-size:13.5px;">${esc(msg.text)}</div>
       </div>`;
-    }).join('') : `<div class="card"><div class="empty">위에서 궁금한 걸 눌러보거나 검색해봐. 실시간 데이터로 바로 알려줄게.</div></div>`}
+    return `
+      <div style="display:flex;align-items:flex-start;gap:8px;margin-bottom:10px;">
+        <div style="width:30px;height:30px;border-radius:50%;background:var(--green-100);display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;">🤖</div>
+        <div style="background:var(--bg-elev2);border:1px solid var(--border);border-radius:4px 16px 16px 16px;padding:10px 14px;max-width:82%;font-size:13.5px;line-height:1.7;">${msg.html || esc(msg.text)}</div>
+      </div>`;
+  }).join('');
+  const lastMsg = aiConversation[aiConversation.length - 1];
+  const showTyping = lastMsg && lastMsg.role === 'user';
+
+  document.getElementById('pageContent').innerHTML = `
+    <div class="card" style="display:flex;flex-direction:column;height:calc(100vh - 180px);padding:0;">
+      <div style="padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;">
+        <div style="width:36px;height:36px;border-radius:50%;background:var(--green-100);display:flex;align-items:center;justify-content:center;font-size:18px;">🤖</div>
+        <div>
+          <div style="font-weight:800;font-size:15px;">AI 브리핑</div>
+          <div style="font-size:11px;color:var(--green-600);font-weight:600;">● 온라인 · 실시간 데이터 연결됨</div>
+        </div>
+        ${aiConversation.length ? `<button class="btn ghost small" style="margin-left:auto;" onclick="aiClearChat()">대화 초기화</button>` : ''}
+      </div>
+      <div id="aiChatWrap" style="flex:1;overflow-y:auto;padding:18px 16px;">
+        ${!aiConversation.length ? `
+          <div style="text-align:center;padding:30px 10px;">
+            <div style="font-size:32px;margin-bottom:10px;">🤖</div>
+            <div style="font-weight:800;font-size:16px;margin-bottom:6px;">안녕! 뭐가 궁금해?</div>
+            <div style="font-size:13px;color:var(--text-dim);margin-bottom:20px;">현재 DB 데이터 기반으로 자유롭게 질문해봐.</div>
+            <div style="display:flex;flex-wrap:wrap;gap:6px;justify-content:center;">
+              ${['오늘 전체 요약해줘', '민원 있어?', '신청 승인 추천해줘', '투표 현황', '등급 어떻게 돼?', '임무 완료율', '회의 현황', '도움말'].map(q =>
+                `<button class="btn ghost small" onclick="document.getElementById('aiChatInput').value='${q}'; aiSend();">${q}</button>`
+              ).join('')}
+            </div>
+          </div>` : chatHtml}
+        ${showTyping ? `
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
+            <div style="width:30px;height:30px;border-radius:50%;background:var(--green-100);display:flex;align-items:center;justify-content:center;font-size:14px;">🤖</div>
+            <div style="background:var(--bg-elev2);border:1px solid var(--border);border-radius:4px 16px 16px 16px;padding:10px 14px;font-size:13.5px;color:var(--text-dim);">답변 생성 중<span id="aiDots">...</span></div>
+          </div>` : ''}
+      </div>
+      <div style="padding:12px 16px;border-top:1px solid var(--border);">
+        <div class="row">
+          <input id="aiChatInput" placeholder="질문을 자유롭게 입력해봐..." style="flex:1;" onkeydown="if(event.key==='Enter'){ aiSend(); }">
+          <button class="btn" onclick="aiSend()">전송</button>
+        </div>
+      </div>
+    </div>
   `;
+  const wrap = document.getElementById('aiChatWrap');
+  if (wrap) wrap.scrollTop = wrap.scrollHeight;
 }
 
-function aiTopicButtonsHtml(query) {
-  const q = query.trim().toLowerCase();
-  const entries = Object.entries(AI_TOPICS).filter(([key, t]) => !q || t.q.toLowerCase().includes(q));
-  if (!entries.length) return `<div style="color:var(--text-dim);font-size:12.5px;">일치하는 질문이 없어. 목록에 있는 표현으로 검색해봐.</div>`;
-  return entries.map(([key, t]) => `<button class="btn ghost small" onclick="askAI('${key}')">${esc(t.q)}</button>`).join('');
-}
-function filterAiTopics() {
-  const val = document.getElementById('aiSearchInput').value;
-  document.getElementById('aiTopicButtons').innerHTML = aiTopicButtonsHtml(val);
-}
-function aiSearchSubmit() {
-  const val = document.getElementById('aiSearchInput').value.trim().toLowerCase();
-  if (!val) return;
-  const exact = Object.entries(AI_TOPICS).find(([key, t]) => t.q.toLowerCase() === val);
-  const match = exact || Object.entries(AI_TOPICS).find(([key, t]) => t.q.toLowerCase().includes(val));
-  if (match) {
-    document.getElementById('aiSearchInput').value = '';
-    askAI(match[0]);
-  } else {
-    toast('일치하는 질문을 못 찾았어');
-  }
-}
 
 function renderDuties() {
   if (!isAdmin()) return renderNoAccess();
@@ -1469,7 +1687,8 @@ function openCreateDutyModal() {
     </div>`);
 }
 function submitCreateDuty() {
-  const title = document.getElementById('mDutyTitle').value.trim();
+if (!isAdmin()) { toast("권한 없어"); return; }
+    const title = document.getElementById('mDutyTitle').value.trim();
   const color = document.getElementById('mDutyColor').value;
   if (!title) { toast('타이틀을 입력해줘'); return; }
   const id = newKey('duties');
@@ -1488,13 +1707,15 @@ function openEditDutyModal(id) {
     </div>`);
 }
 function submitEditDuty(id) {
-  const title = document.getElementById('mDutyTitle2').value.trim();
+if (!isAdmin()) { toast("권한 없어"); return; }
+    const title = document.getElementById('mDutyTitle2').value.trim();
   const color = document.getElementById('mDutyColor2').value;
   if (!title) { toast('타이틀을 입력해줘'); return; }
   db.ref('duties/' + id).update({ title, color }).then(() => { toast('저장했어'); closeModal(); });
 }
 function deleteDuty(id) {
-  if (!confirm('이 1인1역을 삭제할까? 관련 체크/투표 기록은 남아있어.')) return;
+if (!isAdmin()) { toast("권한 없어"); return; }
+    if (!confirm('이 1인1역을 삭제할까? 관련 체크/투표 기록은 남아있어.')) return;
   db.ref('duties/' + id).remove().then(() => toast('삭제했어'));
 }
 function openAssignModal(dutyId, field, label) {
@@ -1512,48 +1733,78 @@ function openAssignModal(dutyId, field, label) {
   `);
 }
 function submitAssign(dutyId, field) {
-  const uid = document.getElementById('mAssignUser').value;
+if (!isAdmin()) { toast("권한 없어"); return; }
+    const uid = document.getElementById('mAssignUser').value;
   db.ref(`duties/${dutyId}/${field}/${uid}`).set(true).then(() => { toast('추가했어'); closeModal(); });
 }
 function removeFromDuty(dutyId, field, uid) {
-  db.ref(`duties/${dutyId}/${field}/${uid}`).remove().then(() => toast('제거했어'));
+if (!isAdmin()) { toast("권한 없어"); return; }
+    db.ref(`duties/${dutyId}/${field}/${uid}`).remove().then(() => toast('제거했어'));
 }
 
 /* ================= CHECKS (1인1역 관리자) ================= */
 function renderChecks() {
   const managed = myManagedDuties();
-  if (!managed.length) {
-    document.getElementById('pageContent').innerHTML = `<div class="card"><div class="empty">관리 중인 1인1역이 없어요</div></div>`;
-    return;
-  }
   const pid = currentPeriodId();
-  if (!pid) {
-    document.getElementById('pageContent').innerHTML = `<div class="card"><div class="empty">활성화된 주기가 없어요. 전체관리자가 설정에서 주기를 만들어야 해요.</div></div>`;
+
+  if (!managed.length) {
+    document.getElementById('pageContent').innerHTML = `
+      <div class="info-banner">📋 관리 중인 1인1역이 없어요. 관리자가 1인1역을 배정해주면 여기서 확인할 수 있어요.</div>`;
     return;
   }
-  document.getElementById('pageContent').innerHTML = managed.map(([dutyId, d]) => {
-    const targets = Object.keys(d.memberIds || {});
-    return `
-    <div class="card">
-      <h2><span class="chip-color" style="background:${d.color}"></span>${esc(d.title)}</h2>
-      <table>
-        <thead><tr><th>멤버</th><th>임무 완료</th></tr></thead>
-        <tbody>
-        ${targets.length ? targets.map(uid => {
-          const c = (((cache.completions[pid] || {})[dutyId] || {})[uid]) || {};
-          return `<tr>
-            <td>${esc(userName(uid))}</td>
-            <td>
-              <button class="btn ${c.done ? '' : 'ghost'} small" onclick="toggleCompletion('${dutyId}','${uid}', ${!c.done})">
-                ${c.done ? '✓ 완료됨' : '미완료'}
+  if (!pid) {
+    document.getElementById('pageContent').innerHTML = `
+      <div class="info-banner">⏳ 활성화된 주기가 없어요. 설정에서 주기를 먼저 만들어야 해요.</div>`;
+    return;
+  }
+
+  let totalDone = 0, totalCount = 0;
+  managed.forEach(([dutyId, d]) => {
+    Object.keys(d.memberIds || {}).forEach(uid => {
+      totalCount++;
+      if ((((cache.completions[pid] || {})[dutyId] || {})[uid] || {}).done) totalDone++;
+    });
+  });
+  const pct = totalCount ? Math.round(totalDone / totalCount * 100) : 0;
+
+  document.getElementById('pageContent').innerHTML = `
+    <div class="info-banner">✅ 멤버들의 임무 완료 여부를 체크해줘. 버튼을 누르면 바로 저장돼.</div>
+    <div class="card" style="margin-bottom:18px;">
+      <div style="display:flex;justify-content:space-between;font-size:13px;font-weight:700;margin-bottom:8px;">
+        <span>전체 완료율</span><span style="color:var(--green-600);">${totalDone}/${totalCount} (${pct}%)</span>
+      </div>
+      <div style="height:10px;border-radius:99px;background:var(--gray-soft);overflow:hidden;">
+        <div style="height:100%;width:${pct}%;background:var(--green-500);transition:width .4s;"></div>
+      </div>
+    </div>
+    ${managed.map(([dutyId, d]) => {
+      const members = Object.keys(d.memberIds || {});
+      const doneCount = members.filter(uid => (((cache.completions[pid] || {})[dutyId] || {})[uid] || {}).done).length;
+      return `
+      <div class="card">
+        <h2>
+          <span class="chip-color" style="background:${d.color};width:14px;height:14px;border-radius:5px;margin-right:4px;"></span>
+          ${esc(d.title)}
+          <span style="color:var(--text-dim);font-weight:600;font-size:12px;margin-left:auto;">${doneCount}/${members.length}</span>
+        </h2>
+        ${members.length ? `<div style="display:flex;flex-direction:column;gap:8px;">
+          ${members.map(uid => {
+            const c = (((cache.completions[pid] || {})[dutyId] || {})[uid]) || {};
+            return `<div style="display:flex;align-items:center;gap:12px;padding:10px 14px;border-radius:14px;background:${c.done ? 'var(--green-50)' : 'var(--bg-elev2)'};border:2px solid ${c.done ? 'var(--green-200)' : 'var(--border)'};">
+              <div style="font-size:22px;">${c.done ? '✅' : '⬜'}</div>
+              <div style="flex:1;">
+                <div style="font-weight:700;font-size:14px;">${esc(userName(uid))}</div>
+                <div style="font-size:11px;color:var(--text-dim);">${c.done ? `완료 · ${c.checkedAt ? new Date(c.checkedAt).toLocaleString('ko-KR',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'}) : ''}` : '미완료'}</div>
+              </div>
+              <button class="btn ${c.done ? 'ghost' : ''}" style="min-width:80px;" onclick="toggleCompletion('${dutyId}','${uid}',${!c.done})">
+                ${c.done ? '↩ 취소' : '완료 처리'}
               </button>
-            </td>
-          </tr>`;
-        }).join('') : `<tr><td colspan="2" class="empty">확인 대상자가 없어요</td></tr>`}
-        </tbody>
-      </table>
-    </div>`;
-  }).join('');
+            </div>`;
+          }).join('')}
+        </div>` : `<div class="empty">이 1인1역에 배정된 멤버가 없어요</div>`}
+      </div>`;
+    }).join('')}
+  `;
 }
 function toggleCompletion(dutyId, uid, done) {
   const pid = currentPeriodId();
@@ -1578,43 +1829,56 @@ function renderVote() {
     const tally = pollTally(pollId);
     let voteUi;
     if (p.type === 'ox') {
-      voteUi = `<div class="ox-btns" style="max-width:220px;">
-        <button class="o ${myAnswer === 'O' ? 'sel' : ''}" onclick="castPollVote('${pollId}','O')">O (${tally.counts['O'] || 0})</button>
-        <button class="x ${myAnswer === 'X' ? 'sel' : ''}" onclick="castPollVote('${pollId}','X')">X (${tally.counts['X'] || 0})</button>
+      voteUi = `<div style="display:flex;gap:12px;max-width:280px;">
+        <button onclick="castPollVote('${pollId}','O')" style="flex:1;padding:18px 0;border-radius:16px;font-size:22px;font-weight:900;border:3px solid ${myAnswer==='O'?'var(--green-600)':'var(--border)'};background:${myAnswer==='O'?'var(--green-600)':'var(--bg-elev2)'};color:${myAnswer==='O'?'#fff':'var(--text)'};cursor:pointer;">O<br><span style="font-size:12px;font-weight:600;">${tally.counts['O']||0}표</span></button>
+        <button onclick="castPollVote('${pollId}','X')" style="flex:1;padding:18px 0;border-radius:16px;font-size:22px;font-weight:900;border:3px solid ${myAnswer==='X'?'var(--danger)':'var(--border)'};background:${myAnswer==='X'?'var(--danger)':'var(--bg-elev2)'};color:${myAnswer==='X'?'#fff':'var(--text)'};cursor:pointer;">X<br><span style="font-size:12px;font-weight:600;">${tally.counts['X']||0}표</span></button>
       </div>`;
     } else {
-      voteUi = `<div style="display:flex; flex-direction:column; gap:6px;">
+      voteUi = `<div style="display:flex;flex-direction:column;gap:8px;">
         ${p.options.map((opt, i) => {
           const optKey = String(i);
           const sel = myAnswer === optKey;
-          return `<button class="btn ${sel ? '' : 'ghost'} small" style="justify-content:space-between;" onclick="castPollVote('${pollId}','${optKey}')">
-            <span>${i + 1}. ${esc(opt)}</span><span>${tally.counts[optKey] || 0}표</span>
+          const cnt = tally.counts[optKey] || 0;
+          const barPct = tally.total ? Math.round(cnt / tally.total * 100) : 0;
+          return `<button onclick="castPollVote('${pollId}','${optKey}')" style="text-align:left;padding:12px 14px;border-radius:14px;border:2px solid ${sel?'var(--green-600)':'var(--border)'};background:${sel?'var(--green-50)':'var(--bg-elev2)'};cursor:pointer;position:relative;overflow:hidden;">
+            <div style="position:absolute;inset:0;width:${barPct}%;background:${sel?'var(--green-100)':'var(--gray-soft)'};opacity:.5;"></div>
+            <div style="position:relative;display:flex;justify-content:space-between;align-items:center;">
+              <span style="font-weight:700;font-size:13.5px;">${i+1}. ${esc(opt)}</span>
+              <span style="font-size:12px;color:var(--text-dim);font-weight:600;">${cnt}표 (${barPct}%)</span>
+            </div>
           </button>`;
         }).join('')}
       </div>`;
     }
     return `<div class="card">
       <h2>📋 ${esc(p.question)} <span style="color:var(--text-dim);font-weight:600;font-size:12px;">· 총 ${tally.total}표</span></h2>
-      <div style="font-size:11.5px;color:var(--text-dim);margin-bottom:10px;">눌러서 투표해줘. 다시 누르면 바뀌어.</div>
+      <div style="font-size:12px;color:var(--text-dim);margin-bottom:12px;">눌러서 투표해줘. 다시 누르면 바뀌어.</div>
       ${voteUi}
     </div>`;
   }).join('') : '';
 
   const prog = pid ? voteProgress() : null;
-  const perfHtml = !pid ? `<div class="card"><div class="empty">활성화된 평가 주기가 없어요</div></div>` : `
+  const perfHtml = !pid ? `<div class="info-banner">⏳ 활성화된 평가 주기가 없어요. 설정에서 주기를 만들어야 해요.</div>` : `
+    <div class="info-banner">🗳️ <b>동료 평가</b> — O는 "이번 주기 잘했어요", X는 "조금 부족했어요". 솔직하게 눌러줘. 관리자는 누가 뭘 눌렀는지 볼 수 있어.</div>
     <div class="card">
       <h2>🗳️ ${esc(cache.periods[pid].label)} 동료 평가</h2>
-      <div style="font-size:12px;color:var(--text-dim);margin-bottom:12px;">사용법: 이름 옆 O(잘했어요)나 X(부족했어요)를 눌러줘. 다시 누르면 바뀌고, 관리자는 누가 뭘 눌렀는지 볼 수 있어.</div>
-      ${prog ? `<div style="margin-bottom:12px;">
-        <div style="display:flex;justify-content:space-between;font-size:12px;font-weight:700;margin-bottom:4px;"><span>내 투표 진행</span><span>${prog.done}/${prog.total}</span></div>
-        <div style="height:8px;border-radius:99px;background:var(--gray-soft);overflow:hidden;"><div style="height:100%;width:${prog.total ? Math.round(prog.done / prog.total * 100) : 0}%;background:var(--green-500);"></div></div>
+      ${prog ? `<div style="margin-bottom:14px;">
+        <div style="display:flex;justify-content:space-between;font-size:12px;font-weight:700;margin-bottom:6px;">
+          <span>내 투표 진행률</span>
+          <span style="color:${prog.done===prog.total?'var(--green-600)':'var(--text-dim)'};">${prog.done}/${prog.total}명 완료</span>
+        </div>
+        <div style="height:10px;border-radius:99px;background:var(--gray-soft);overflow:hidden;">
+          <div style="height:100%;width:${prog.total?Math.round(prog.done/prog.total*100):0}%;background:var(--green-500);transition:width .4s;"></div>
+        </div>
+        ${prog.done===prog.total?`<div style="margin-top:8px;font-weight:700;color:var(--green-600);">🎉 전원 투표 완료!</div>`:''}
       </div>` : ''}
-      <div class="row" style="margin-bottom:12px; gap:8px;">
-        <input id="voteSearchInput" placeholder="이름으로 찾기..." value="${esc(voteFilterText)}" oninput="onVoteSearchInput()" style="flex:1;">
-        <button class="btn ${voteOnlyPending ? '' : 'ghost'} small" onclick="toggleVoteOnlyPending()">안 한 사람만</button>
+      <div class="row" style="margin-bottom:14px;gap:8px;">
+        <input id="voteSearchInput" placeholder="🔍 이름으로 찾기..." value="${esc(voteFilterText)}" oninput="onVoteSearchInput()" style="flex:1;">
+        <button class="btn ${voteOnlyPending?'':'ghost'} small" onclick="toggleVoteOnlyPending()">
+          ${voteOnlyPending?'✅ 안 한 사람만':'전체 보기'}
+        </button>
       </div>
       <div id="voteGridContainer">${buildVoteGridHtml()}</div>
-      ${prog && prog.total > 0 && prog.done === prog.total ? `<div style="margin-top:12px;font-size:13px;font-weight:700;color:var(--green-600);">🎉 전원 투표 완료했어!</div>` : ''}
     </div>`;
 
   document.getElementById('pageContent').innerHTML = pollsHtml + perfHtml;
@@ -1637,14 +1901,14 @@ function buildVoteGridHtml() {
     others = others.filter(([uid, u]) => u.name.toLowerCase().includes(q));
   }
   if (!others.length) return `<div class="empty">${voteFilterText || voteOnlyPending ? '조건에 맞는 사람이 없어' : '투표할 다른 멤버가 없어요'}</div>`;
-  return `<div class="vote-grid">
+  return `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px;">
     ${others.map(([uid, u]) => {
       const my = (myVotes[uid] || {})[currentUser.uid];
-      return `<div class="vote-card">
-        <div class="name">${esc(u.name)}</div>
-        <div class="ox-btns">
-          <button class="o ${my === 'O' ? 'sel' : ''}" onclick="castVote('${uid}','O')">O</button>
-          <button class="x ${my === 'X' ? 'sel' : ''}" onclick="castVote('${uid}','X')">X</button>
+      return `<div style="border:2px solid ${my==='O'?'var(--green-500)':my==='X'?'var(--danger)':'var(--border)'};border-radius:18px;padding:14px 10px;background:${my==='O'?'var(--green-50)':my==='X'?'var(--danger-soft)':'var(--bg-elev2)'};text-align:center;">
+        <div style="font-weight:800;font-size:14px;margin-bottom:10px;">${esc(u.name)}</div>
+        <div style="display:flex;gap:6px;">
+          <button onclick="castVote('${uid}','O')" style="flex:1;padding:10px 0;border-radius:12px;font-size:18px;font-weight:900;border:2px solid ${my==='O'?'var(--green-600)':'var(--border)'};background:${my==='O'?'var(--green-600)':'var(--bg-elev)'};color:${my==='O'?'#fff':'var(--text)'};cursor:pointer;">O</button>
+          <button onclick="castVote('${uid}','X')" style="flex:1;padding:10px 0;border-radius:12px;font-size:18px;font-weight:900;border:2px solid ${my==='X'?'var(--danger)':'var(--border)'};background:${my==='X'?'var(--danger)':'var(--bg-elev)'};color:${my==='X'?'#fff':'var(--text)'};cursor:pointer;">X</button>
         </div>
       </div>`;
     }).join('')}
@@ -1749,7 +2013,8 @@ function openOverrideModal(pid, uid) {
     </div>`);
 }
 function submitOverride(pid, uid) {
-  const val = document.getElementById('mGradeSel').value;
+if (!isAdmin()) { toast("권한 없어"); return; }
+    const val = document.getElementById('mGradeSel').value;
   const g = ((cache.grades[pid] || {})[uid]) || {};
   if (val) {
     db.ref(`grades/${pid}/${uid}`).set({ autoGrade: g.autoGrade || null, finalGrade: val, overridden: true })
@@ -1769,36 +2034,28 @@ function renderComplaints() {
   const shownList = expanded ? list : list.slice(0, limit);
   const remaining = list.length - limit;
   document.getElementById('pageContent').innerHTML = `
+    <div class="info-banner">💬 부당한 대우나 문제 사항을 민원으로 제기할 수 있어. "+ 민원 제기" 버튼을 눌러봐. 관리자만 해결 처리할 수 있어.</div>
     <div class="card">
-      <table>
-        <thead><tr><th>카테고리</th><th>제목</th><th>대상</th><th>작성자</th><th>상태</th>${isAdmin() ? '<th></th>' : ''}</tr></thead>
-        <tbody>
-        ${shownList.length ? shownList.map(([id, c]) => {
-          const cat = cache.complaintCategories[c.categoryId] || { title: '(삭제됨)', color: '#94a3b8' };
-          return `<tr>
-            <td><span class="chip-color" style="background:${cat.color}"></span>${esc(cat.title)}</td>
-            <td>${esc(c.title)}</td>
-            <td>${c.targetUid ? esc(userName(c.targetUid)) : '-'}</td>
-            <td>${esc(userName(c.submittedBy))}</td>
-            <td><span class="badge ${c.status}">${c.status === 'pending' ? '대기중' : '해결됨'}</span></td>
-            ${isAdmin() ? `<td>${c.status === 'pending' ? `<button class="btn small" onclick="resolveComplaint('${id}')">해결처리</button>` : ''}</td>` : ''}
-          </tr>`;
-        }).join('') : `<tr><td colspan="6" class="empty">민원이 없어요</td></tr>`}
-        </tbody>
-      </table>
+      ${shownList.length ? shownList.map(([id, c]) => `
+        <div class="list-item" style="align-items:flex-start;">
+          <span class="ldot" style="background:${c.status==='pending'?'var(--warn)':'var(--green-500)'};margin-top:5px;"></span>
+          <div style="flex:1;">
+            <div style="font-weight:700;font-size:13.5px;">${esc(c.title)}</div>
+            <div style="font-size:11.5px;color:var(--text-dim);margin-top:2px;">
+              ${esc(userName(c.submittedBy))} 제출${c.targetUid ? ` · 대상: ${esc(userName(c.targetUid))}` : ''} · ${c.createdAt ? new Date(c.createdAt).toLocaleDateString('ko-KR') : ''}
+            </div>
+          </div>
+          <span class="badge ${c.status==='pending'?'pending':'resolved'}">${c.status==='pending'?'대기중':'해결됨'}</span>
+          ${isAdmin() && c.status==='pending' ? `<button class="btn small" onclick="resolveComplaint('${id}')">해결처리</button>` : ''}
+        </div>`).join('') : `<div class="empty">민원이 없어요</div>`}
       ${!expanded && remaining > 0 ? `<button class="btn ghost small" style="margin-top:10px;" onclick="toggleExpand('complaints-list')">더보기 (+${remaining})</button>` : ''}
       ${expanded && list.length > limit ? `<button class="btn ghost small" style="margin-top:10px;" onclick="toggleExpand('complaints-list')">접기</button>` : ''}
     </div>`;
 }
 function openSubmitComplaintModal() {
-  const cats = Object.entries(cache.complaintCategories || {});
-  if (!cats.length) { toast('민원 카테고리가 아직 없어요. 관리자에게 요청해줘.'); return; }
   const users = Object.entries(cache.users || {});
   openModal(`
     <h3>민원 제기</h3>
-    <div class="field"><label>카테고리</label>
-      <select id="mCplCat">${cats.map(([id, c]) => `<option value="${id}">${esc(c.title)}</option>`).join('')}</select>
-    </div>
     <div class="field"><label>대상자 (선택)</label>
       <select id="mCplTarget"><option value="">없음</option>${users.map(([uid, u]) => `<option value="${uid}">${esc(u.name)}</option>`).join('')}</select>
     </div>
@@ -1810,19 +2067,19 @@ function openSubmitComplaintModal() {
     </div>`);
 }
 function submitComplaint() {
-  const categoryId = document.getElementById('mCplCat').value;
   const targetUid = document.getElementById('mCplTarget').value || null;
   const title = document.getElementById('mCplTitle').value.trim();
   const content = document.getElementById('mCplContent').value.trim();
   if (!title || !content) { toast('제목과 내용을 입력해줘'); return; }
   const id = newKey('complaints');
   db.ref('complaints/' + id).set({
-    categoryId, targetUid, title, content, submittedBy: currentUser.uid,
+    title, content, targetUid, submittedBy: currentUser.uid,
     status: 'pending', createdAt: Date.now()
   }).then(() => { toast('민원을 제출했어'); closeModal(); });
 }
 function resolveComplaint(id) {
-  db.ref('complaints/' + id).update({ status: 'resolved', resolvedAt: Date.now(), resolvedBy: currentUser.uid })
+if (!isAdmin()) { toast("권한 없어"); return; }
+    db.ref('complaints/' + id).update({ status: 'resolved', resolvedAt: Date.now(), resolvedBy: currentUser.uid })
     .then(() => toast('해결처리 했어'));
 }
 
@@ -1835,69 +2092,116 @@ function renderMyDuties() {
   const pastPeriods = Object.entries(cache.periods || {}).sort((a, b) => (b[1].createdAt || 0) - (a[1].createdAt || 0)).slice(0, 6);
 
   document.getElementById('pageContent').innerHTML = `
+    <div class="info-banner">🎯 내가 맡은 1인1역이야. 이번 주기 완료 상태를 확인할 수 있어. 역할을 더 맡고 싶으면 <button class="btn small" style="padding:3px 8px;font-size:11px;vertical-align:middle;" onclick="renderPage('apply')">1인1역 신청</button>을 눌러봐.</div>
     ${myDuties.length ? myDuties.map(([dutyId, d]) => {
       const curDone = pid ? !!(((cache.completions[pid] || {})[dutyId] || {})[currentUser.uid] || {}).done : null;
       return `
-      <div class="card">
-        <h2><span class="chip-color" style="background:${d.color}"></span>${esc(d.title)}
-          ${pid ? `<span class="badge ${curDone ? 'resolved' : 'pending'}" style="margin-left:auto;">${curDone ? '이번 주기 완료' : '이번 주기 대기'}</span>` : ''}
-        </h2>
-        <div style="font-size:12px;color:var(--text-dim);margin-bottom:8px;">최근 주기별 완료 기록</div>
-        ${pastPeriods.length ? `<div style="display:flex; flex-wrap:wrap; gap:6px;">
+      <div class="card" style="border-left:4px solid ${d.color};">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+          <div style="font-size:26px;">${curDone ? '✅' : '⏳'}</div>
+          <div style="flex:1;">
+            <div style="font-weight:800;font-size:15px;">${esc(d.title)}</div>
+            <div style="font-size:12px;color:var(--text-dim);">이번 주기 · ${curDone ? '완료됨' : pid ? '아직 완료 전이야' : '주기 없음'}</div>
+          </div>
+          ${pid ? `<span class="badge ${curDone ? 'resolved' : 'grade-C'}">${curDone ? '완료' : '대기중'}</span>` : ''}
+        </div>
+        ${pastPeriods.length > 1 ? `
+        <div style="font-size:11px;color:var(--text-dim);margin-bottom:6px;font-weight:600;">지난 기록</div>
+        <div style="display:flex;flex-wrap:wrap;gap:5px;">
           ${pastPeriods.map(([pId, p]) => {
             const done = !!(((cache.completions[pId] || {})[dutyId] || {})[currentUser.uid] || {}).done;
-            return `<span class="badge ${done ? 'resolved' : 'pending'}" title="${esc(p.label)}">${esc(p.label)} ${done ? '✓' : '·'}</span>`;
+            return `<span style="padding:3px 8px;border-radius:99px;font-size:11px;font-weight:700;background:${done?'var(--green-100)':'var(--gray-soft)'};color:${done?'var(--green-700)':'var(--gray-text)'};">${esc(p.label.slice(-4))} ${done?'✓':'·'}</span>`;
           }).join('')}
-        </div>` : `<div class="empty">아직 기록된 주기가 없어요</div>`}
+        </div>` : ''}
       </div>`;
-    }).join('') : `<div class="card"><div class="empty">아직 맡은 1인1역이 없어요. "1인1역 신청" 탭에서 신청해봐.</div></div>`}
+    }).join('') : `
+    <div class="card" style="text-align:center;padding:40px 20px;">
+      <div style="font-size:40px;margin-bottom:12px;">🌱</div>
+      <div style="font-weight:800;font-size:16px;margin-bottom:8px;">아직 맡은 1인1역이 없어요</div>
+      <div style="font-size:13px;color:var(--text-dim);margin-bottom:18px;">1인1역을 신청하면 동료 투표를 거쳐 배정받을 수 있어요.</div>
+      <button class="btn" onclick="renderPage('apply')">1인1역 신청하러 가기</button>
+    </div>`}
   `;
 }
 
 /* ================= ROSTER (멤버 현황판, 전체 열람 가능) ================= */
-function renderRoster() {
-  const duties = Object.entries(cache.duties || {});
-  document.getElementById('pageContent').innerHTML = duties.length ? `
-    <div class="grid2">
-      ${duties.map(([id, d]) => {
-        const members = Object.keys(d.memberIds || {});
-        return `
-        <div class="card">
-          <h2><span class="chip-color" style="background:${d.color}"></span>${esc(d.title)} <span style="color:var(--text-dim);font-weight:600;font-size:12px;">· ${members.length}명</span></h2>
-          ${members.length ? `<div style="display:flex; flex-wrap:wrap; gap:6px;">
-            ${members.map(uid => `<span class="badge" style="background:var(--bg-elev2);color:var(--text);border:1px solid var(--border);">${esc(userName(uid))}</span>`).join('')}
-          </div>` : `<div class="empty">아직 멤버가 없어요</div>`}
-        </div>`;
-      }).join('')}
-    </div>
-  ` : `<div class="card"><div class="empty">아직 만들어진 1인1역이 없어요</div></div>`;
+/* ================= NOTICES (공지사항) ================= */
+function markAllNoticesRead() {
+  const ids = Object.keys(cache.notices || {});
+  localStorage.setItem('readNotices', JSON.stringify(ids));
+  buildNav();
+}
+function markNoticeRead(id) {
+  const read = JSON.parse(localStorage.getItem('readNotices') || '[]');
+  if (!read.includes(id)) { read.push(id); localStorage.setItem('readNotices', JSON.stringify(read)); buildNav(); }
+}
+function pinNotice(id, pinned) {
+  if (!isAdmin()) return;
+  db.ref(`notices/${id}/pinned`).set(!pinned);
+}
+function deleteNotice(id) {
+  if (!isAdmin()) { toast('권한 없어'); return; }
+  if (!confirm('이 공지를 삭제할까?')) return;
+  db.ref('notices/' + id).remove().then(() => toast('삭제했어'));
+}
+function openCreateNoticeModal() {
+  if (!isAdmin()) { toast('권한 없어'); return; }
+  openModal(`
+    <h3>공지 작성</h3>
+    <div class="field"><label>제목</label><input id="mNoticeTitle" placeholder="공지 제목"></div>
+    <div class="field"><label>내용</label><textarea id="mNoticeContent" rows="5" placeholder="공지 내용을 써줘"></textarea></div>
+    <div class="row" style="justify-content:flex-end;">
+      <button class="btn ghost" onclick="closeModal()">취소</button>
+      <button class="btn" onclick="submitCreateNotice()">올리기</button>
+    </div>`);
+}
+function submitCreateNotice() {
+  if (!isAdmin()) { toast('권한 없어'); closeModal(); return; }
+  const title = document.getElementById('mNoticeTitle').value.trim();
+  const content = document.getElementById('mNoticeContent').value.trim();
+  if (!title || !content) { toast('제목과 내용을 모두 입력해줘'); return; }
+  const id = newKey('notices');
+  db.ref('notices/' + id).set({ title, content, createdBy: currentUser.uid, createdAt: Date.now(), pinned: false })
+    .then(() => { toast('공지를 올렸어'); closeModal(); markNoticeRead(id); });
 }
 
-/* ================= MY GRADES (등급 히스토리) ================= */
-function renderMyGrades() {
-  const periods = Object.entries(cache.periods || {}).sort((a, b) => (b[1].createdAt || 0) - (a[1].createdAt || 0));
+function renderNotices() {
+  if (isAdmin()) {
+    document.getElementById('topbarActions').innerHTML = `<button class="btn" onclick="openCreateNoticeModal()">+ 공지 작성</button>`;
+  }
+  const list = Object.entries(cache.notices || {}).sort((a, b) => {
+    if (b[1].pinned !== a[1].pinned) return b[1].pinned ? 1 : -1;
+    return (b[1].createdAt || 0) - (a[1].createdAt || 0);
+  });
+  const readNotices = JSON.parse(localStorage.getItem('readNotices') || '[]');
+  if (list.length) setTimeout(() => markAllNoticesRead(), 800);
   document.getElementById('pageContent').innerHTML = `
-    <div class="card">
-      <h2>내 등급 히스토리</h2>
-      ${periods.length ? `<table>
-        <thead><tr><th>주기</th><th>O</th><th>X</th><th>등급</th></tr></thead>
-        <tbody>
-        ${periods.map(([pid, p]) => {
-          const votes = Object.values((cache.votes[pid] || {})[currentUser.uid] || {});
-          const o = votes.filter(v => v === 'O').length;
-          const x = votes.filter(v => v === 'X').length;
-          const g = ((cache.grades[pid] || {})[currentUser.uid]) || {};
-          const grade = g.finalGrade || g.autoGrade;
-          return `<tr>
-            <td>${esc(p.label)}${pid === currentPeriodId() ? ' <span style="color:var(--text-dim);font-size:11px;">(현재)</span>' : ''}</td>
-            <td>${o}</td>
-            <td>${x}</td>
-            <td>${grade ? `<span class="badge grade-${grade}">${grade}</span>` : '<span class="badge grade-null">미평가</span>'}</td>
-          </tr>`;
-        }).join('')}
-        </tbody>
-      </table>` : `<div class="empty">아직 주기 기록이 없어요</div>`}
-    </div>
+    <div class="info-banner">📢 전체에게 공지되는 게시판이야. 읽으면 자동으로 읽음 처리돼.</div>
+    ${list.length ? list.map(([id, n]) => {
+      const isRead = readNotices.includes(id);
+      return `<div class="card" style="border-left:4px solid ${n.pinned ? 'var(--green-500)' : 'var(--border)'};">
+        <div style="display:flex;align-items:flex-start;gap:10px;">
+          <div style="flex:1;">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+              ${n.pinned ? `<span style="font-size:13px;">📌</span>` : ''}
+              <span style="font-weight:800;font-size:15px;">${esc(n.title)}</span>
+              ${!isRead ? `<span class="badge" style="background:var(--danger);color:#fff;">new</span>` : ''}
+            </div>
+            <div style="font-size:13.5px;color:var(--text);line-height:1.7;white-space:pre-wrap;">${esc(n.content)}</div>
+            <div style="font-size:11px;color:var(--text-dim);margin-top:8px;">${esc(userName(n.createdBy))} · ${n.createdAt ? new Date(n.createdAt).toLocaleString('ko-KR', {month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'}) : ''}</div>
+          </div>
+          ${isAdmin() ? `<div style="display:flex;gap:6px;flex-shrink:0;">
+            <button class="btn ghost small" onclick="pinNotice('${id}', ${n.pinned})">${n.pinned ? '고정 해제' : '고정'}</button>
+            <button class="btn danger small" onclick="deleteNotice('${id}')">삭제</button>
+          </div>` : ''}
+        </div>
+      </div>`;
+    }).join('') : `
+    <div class="card" style="text-align:center;padding:40px 20px;">
+      <div style="font-size:36px;margin-bottom:12px;">📢</div>
+      <div style="font-weight:800;font-size:15px;margin-bottom:6px;">아직 공지가 없어요</div>
+      ${isAdmin() ? `<div style="color:var(--text-dim);font-size:13px;margin-bottom:16px;">위 버튼으로 첫 공지를 올려봐</div>` : `<div style="color:var(--text-dim);font-size:13px;">관리자가 공지를 올리면 여기에 표시돼요</div>`}
+    </div>`}
   `;
 }
 
@@ -1912,7 +2216,8 @@ function markMemoRead(id) {
   db.ref('memos/' + id + '/read').set(true);
 }
 function deleteMemo(id) {
-  if (!confirm('이 메모를 삭제할까?')) return;
+if (!isAdmin()) { toast("권한 없어"); return; }
+    if (!confirm('이 메모를 삭제할까?')) return;
   db.ref('memos/' + id).remove().then(() => toast('삭제했어'));
 }
 function openSendMemoModal() {
@@ -1929,7 +2234,8 @@ function openSendMemoModal() {
     </div>`);
 }
 function submitSendMemo() {
-  const toUid = document.getElementById('mMemoTo').value;
+if (!isAdmin()) { toast("권한 없어"); return; }
+    const toUid = document.getElementById('mMemoTo').value;
   const text = document.getElementById('mMemoText').value.trim();
   if (!text) { toast('내용을 입력해줘'); return; }
   sendMemo(toUid, text);
@@ -1995,7 +2301,8 @@ function openCreateGroupSetModal() {
     </div>`);
 }
 function submitCreateGroupSet() {
-  const title = document.getElementById('mGroupTitle').value.trim();
+if (!isAdmin()) { toast("권한 없어"); return; }
+    const title = document.getElementById('mGroupTitle').value.trim();
   const count = Number(document.getElementById('mGroupCount').value);
   const errEl = document.getElementById('mGroupErr');
   if (!title) { errEl.textContent = '제목을 입력해줘'; return; }
@@ -2012,7 +2319,8 @@ function submitCreateGroupSet() {
     .then(() => { toast('모둠을 만들고 자동배정했어'); closeModal(); });
 }
 function shuffleGroupSet(setId) {
-  const set = cache.groupSets[setId];
+if (!isAdmin()) { toast("권한 없어"); return; }
+    const set = cache.groupSets[setId];
   if (!set) return;
   const groupIds = Object.keys(set.groups || {});
   if (!groupIds.length) return;
@@ -2035,7 +2343,8 @@ function moveMemberToGroup(setId, uid, targetGroupId) {
   db.ref().update(updates).then(() => toast('모둠을 옮겼어'));
 }
 function deleteGroupSet(setId) {
-  if (!confirm('이 모둠 편성을 삭제할까?')) return;
+if (!isAdmin()) { toast("권한 없어"); return; }
+    if (!confirm('이 모둠 편성을 삭제할까?')) return;
   db.ref('groupSets/' + setId).remove().then(() => toast('삭제했어'));
 }
 
@@ -2077,8 +2386,8 @@ function renderGroups() {
 
 /* ================= MEETINGS (회의) ================= */
 let openMeetingId = null;
-function setOpenMeeting(id) { openMeetingId = id; renderPage('meetings'); }
-function backToMeetingList() { openMeetingId = null; renderPage('meetings'); }
+function setOpenMeeting(id) { openMeetingId = id; subscribeMeetingMessages(id); renderPage('meetings'); }
+function backToMeetingList() { openMeetingId = null; subscribeMeetingMessages(null); renderPage('meetings'); }
 
 function openCreateMeetingModal() {
   const users = Object.entries(cache.users || {});
@@ -2105,7 +2414,8 @@ function openCreateMeetingModal() {
     </div>`);
 }
 function submitCreateMeeting() {
-  const title = document.getElementById('mMeetTitle').value.trim();
+if (!isAdmin()) { toast("권한 없어"); return; }
+    const title = document.getElementById('mMeetTitle').value.trim();
   const mode = document.getElementById('mMeetMode').value;
   const checked = Array.from(document.querySelectorAll('.mMeetParticipant:checked')).map(el => el.value);
   const errEl = document.getElementById('mMeetErr');
@@ -2120,7 +2430,8 @@ function submitCreateMeeting() {
   }).then(() => { toast('회의를 만들었어'); closeModal(); setOpenMeeting(id); });
 }
 function deleteMeeting(meetingId) {
-  if (!confirm('이 회의를 삭제할까? 대화 내용도 같이 삭제돼.')) return;
+if (!isAdmin()) { toast("권한 없어"); return; }
+    if (!confirm('이 회의를 삭제할까? 대화 내용도 같이 삭제돼.')) return;
   db.ref('meetings/' + meetingId).remove()
     .then(() => db.ref('meetingMessages/' + meetingId).remove())
     .then(() => db.ref('meetingModeratorVotes/' + meetingId).remove())
@@ -2248,13 +2559,15 @@ function renderChatMessage(meetingId, msgId, msg) {
 }
 
 function assignModeratorDirect(meetingId, uid) {
-  db.ref(`meetings/${meetingId}`).update({ moderatorUid: uid, status: 'active' }).then(() => toast('사회자를 지정하고 회의를 시작했어'));
+if (!isAdmin()) { toast("권한 없어"); return; }
+    db.ref(`meetings/${meetingId}`).update({ moderatorUid: uid, status: 'active' }).then(() => toast('사회자를 지정하고 회의를 시작했어'));
 }
 function castModeratorVote(meetingId, candidateUid) {
   db.ref(`meetingModeratorVotes/${meetingId}/${currentUser.uid}`).set(candidateUid).then(() => toast('투표했어'));
 }
 function finalizeModeratorVote(meetingId) {
-  const votes = cache.meetingModeratorVotes[meetingId] || {};
+if (!isAdmin()) { toast("권한 없어"); return; }
+    const votes = cache.meetingModeratorVotes[meetingId] || {};
   const tally = {};
   Object.values(votes).forEach(c => { tally[c] = (tally[c] || 0) + 1; });
   const entries = Object.entries(tally);
@@ -2304,7 +2617,7 @@ function handleMeetingCommand(meetingId, command, payload) {
     const mm = cache.meetings[meetingId];
     const target = Object.keys(mm.participantIds || {}).find(uid => userName(uid) === payload);
     if (!target) { toast('참가자 중에 그 이름을 못 찾았어'); return; }
-    db.ref(`meetingMessages/${meetingId}/${id}`).set({ uid: currentUser.uid, text: `${userName(target)}님, 발언해주세요`, type: 'system', command: '지목', mentionUid: target, createdAt: Date.now() });
+    db.ref(`meetingMessages/${meetingId}/${id}`).set({ uid: currentUser.uid, text: `${esc(userName(target))}님, 발언해주세요`, type: 'system', command: '지목', mentionUid: target, createdAt: Date.now() });
   } else if (command === '투표') {
     if (!payload) { toast('@투표 뒤에 질문을 적어줘'); return; }
     db.ref(`meetingMessages/${meetingId}/${id}`).set({ uid: currentUser.uid, text: payload, type: 'poll', command: '투표', pollOptions: ['O', 'X'], pollVotes: {}, createdAt: Date.now() });
@@ -2337,17 +2650,20 @@ function renderMe() {
     </div>
   `;
 }
-function submitChangePassword() {
+async function submitChangePassword() {
   const cur = document.getElementById('mePwCurrent').value;
   const next = document.getElementById('mePwNew').value;
   const next2 = document.getElementById('mePwNew2').value;
   const errEl = document.getElementById('mePwErr');
   const info = cache.users[currentUser.uid] || {};
   errEl.textContent = '';
-  if (cur !== info.password) { errEl.textContent = '현재 비밀번호가 맞지 않아'; return; }
+  const curHash = await hashPassword(cur);
+  // 해시 비교, 구버전 평문 호환
+  if (curHash !== info.password && cur !== info.password) { errEl.textContent = '현재 비밀번호가 맞지 않아'; return; }
   if (next.length < 4) { errEl.textContent = '새 비밀번호는 4자 이상으로 해줘'; return; }
   if (next !== next2) { errEl.textContent = '새 비밀번호 확인이 서로 달라'; return; }
-  db.ref('users/' + currentUser.uid + '/password').set(next).then(() => {
+  const nextHash = await hashPassword(next);
+  db.ref('users/' + currentUser.uid + '/password').set(nextHash).then(() => {
     toast('비밀번호를 변경했어');
     ['mePwCurrent', 'mePwNew', 'mePwNew2'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
   });
@@ -2356,7 +2672,6 @@ function submitChangePassword() {
 function renderSettings() {
   if (!isAdmin()) return renderNoAccess();
   const periods = Object.entries(cache.periods || {}).sort((a, b) => (b[1].createdAt || 0) - (a[1].createdAt || 0));
-  const cats = Object.entries(cache.complaintCategories || {});
   const polls = Object.entries(cache.polls || {}).sort((a, b) => (b[1].createdAt || 0) - (a[1].createdAt || 0));
   const th = (cache.settings && cache.settings.gradeThresholds) || { a: 90, b: 75, c: 50 };
   document.getElementById('pageContent').innerHTML = `
@@ -2398,16 +2713,6 @@ function renderSettings() {
       </table>
     </div>
     <div class="card">
-      <h2>민원 카테고리 <button class="btn small" style="margin-left:auto;" onclick="openCreateCategoryModal()">+ 카테고리</button></h2>
-      <div style="display:flex;flex-wrap:wrap;gap:8px;">
-        ${cats.length ? cats.map(([id, c]) => `
-          <span class="badge" style="background:${c.color}">
-            ${esc(c.title)}
-            <button style="margin-left:6px;font-weight:900;" onclick="deleteCategory('${id}')">×</button>
-          </span>`).join('') : `<div class="empty">카테고리가 없어요</div>`}
-      </div>
-    </div>
-    <div class="card">
       <h2>⚙️ 고급 설정</h2>
       <div style="font-size:12px;color:var(--text-dim);margin-bottom:12px;">O 득표율 기준으로 등급이 자동 산정되는 경계값이야. 예: A값이 90이면 O비율 90% 이상은 A.</div>
       <div class="grid3">
@@ -2420,7 +2725,8 @@ function renderSettings() {
     </div>`;
 }
 function submitGradeThresholds() {
-  const a = Number(document.getElementById('mThA').value);
+if (!isAdmin()) { toast("권한 없어"); return; }
+    const a = Number(document.getElementById('mThA').value);
   const b = Number(document.getElementById('mThB').value);
   const c = Number(document.getElementById('mThC').value);
   const errEl = document.getElementById('mThErr');
@@ -2450,7 +2756,8 @@ function openCreatePollModal() {
     </div>`);
 }
 function submitCreatePoll() {
-  const question = document.getElementById('mPollQ').value.trim();
+if (!isAdmin()) { toast("권한 없어"); return; }
+    const question = document.getElementById('mPollQ').value.trim();
   const type = document.getElementById('mPollType').value;
   const errEl = document.getElementById('mPollErr');
   if (!question) { errEl.textContent = '질문을 입력해줘'; return; }
@@ -2464,10 +2771,12 @@ function submitCreatePoll() {
     .then(() => { toast('설문을 만들었어'); closeModal(); });
 }
 function closePoll(id) {
-  db.ref('polls/' + id + '/closed').set(true).then(() => toast('설문을 마감했어'));
+if (!isAdmin()) { toast("권한 없어"); return; }
+    db.ref('polls/' + id + '/closed').set(true).then(() => toast('설문을 마감했어'));
 }
 function deletePoll(id) {
-  if (!confirm('이 설문을 삭제할까? 투표 기록도 같이 삭제돼.')) return;
+if (!isAdmin()) { toast("권한 없어"); return; }
+    if (!confirm('이 설문을 삭제할까? 투표 기록도 같이 삭제돼.')) return;
   db.ref('polls/' + id).remove()
     .then(() => db.ref('pollVotes/' + id).remove())
     .then(() => toast('삭제했어'));
@@ -2485,7 +2794,8 @@ function openCreatePeriodModal() {
     </div>`);
 }
 function submitCreatePeriod() {
-  const label = document.getElementById('mPeriodLabel').value.trim();
+if (!isAdmin()) { toast("권한 없어"); return; }
+    const label = document.getElementById('mPeriodLabel').value.trim();
   const type = document.getElementById('mPeriodType').value;
   if (!label) { toast('이름을 입력해줘'); return; }
   const id = newKey('periods');
@@ -2495,28 +2805,8 @@ function submitCreatePeriod() {
     .then(() => { toast('새 주기를 활성화했어'); closeModal(); });
 }
 function activatePeriod(id) {
-  db.ref('settings/currentPeriodId').set(id).then(() => toast('주기를 활성화했어'));
-}
-function openCreateCategoryModal() {
-  openModal(`
-    <h3>민원 카테고리 만들기</h3>
-    <div class="field"><label>타이틀</label><input id="mCatTitle" placeholder="예: 업무 태만"></div>
-    <div class="field"><label>색상</label><input id="mCatColor" type="color" value="#ef4444"></div>
-    <div class="row" style="justify-content:flex-end;">
-      <button class="btn ghost" onclick="closeModal()">취소</button>
-      <button class="btn" onclick="submitCreateCategory()">만들기</button>
-    </div>`);
-}
-function submitCreateCategory() {
-  const title = document.getElementById('mCatTitle').value.trim();
-  const color = document.getElementById('mCatColor').value;
-  if (!title) { toast('타이틀을 입력해줘'); return; }
-  const id = newKey('complaintCategories');
-  db.ref('complaintCategories/' + id).set({ title, color }).then(() => { toast('카테고리를 만들었어'); closeModal(); });
-}
-function deleteCategory(id) {
-  if (!confirm('이 카테고리를 삭제할까?')) return;
-  db.ref('complaintCategories/' + id).remove().then(() => toast('삭제했어'));
+if (!isAdmin()) { toast("권한 없어"); return; }
+    db.ref('settings/currentPeriodId').set(id).then(() => toast('주기를 활성화했어'));
 }
 
 </script>
