@@ -1035,11 +1035,6 @@ function renderDashboard() {
         </button>`;
       }).join('')}
     </div>
-    ${myGrade ? `
-    <div class="card">
-      <h2>내 이번 주기 등급</h2>
-      <span class="badge grade-${myGrade}" style="font-size:14px;padding:6px 14px;">${myGrade}</span>
-    </div>` : ''}
     ${!pid ? `<div class="card"><div class="empty">아직 활성화된 주기가 없어요.${isAdmin() ? ' 설정 탭에서 만들어봐.' : ''}</div></div>` : `
     <div class="card">
       <h2>${listTitle} ${listTotal ? `<span style="color:var(--text-dim);font-weight:600;font-size:13px;">${listDone}/${listTotal}</span>` : ''}</h2>
