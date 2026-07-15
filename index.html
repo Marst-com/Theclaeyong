@@ -202,11 +202,10 @@ td:first-child{ font-weight:700; color:var(--text); }
 
 .login-wrap{ min-height:100vh; display:flex; align-items:center; justify-content:center; padding:20px; background:var(--bg); }
 .login-box{ width:100%; max-width:360px; background:var(--bg-elev); padding:32px 28px; border-radius:24px; box-shadow:var(--shadow); border:1px solid var(--border); }
-.login-box .icon-badge{ width:52px; height:52px; border-radius:18px; margin:0 auto 16px; }
-.login-box .icon-badge svg{ width:26px; height:26px; }
 .login-box h1{ text-align:center; font-size:19px; font-weight:800; margin-bottom:4px; }
 .login-box .sub{ text-align:center; font-size:13px; color:var(--text-dim); margin-bottom:24px; }
 .err-msg{ color:var(--danger); font-size:12px; margin-top:6px; min-height:14px; }
+@keyframes spin{ to{ transform:rotate(360deg); } }
 
 .vote-grid{ display:flex; flex-wrap:wrap; gap:10px; }
 .chat-wrap{ display:flex; flex-direction:column; gap:8px; max-height:52vh; overflow-y:auto; padding:6px 2px; margin-bottom:12px; }
@@ -283,28 +282,50 @@ td:first-child{ font-weight:700; color:var(--text); }
 </head>
 <body>
 
+<!-- ============ LOADING ============ -->
+<div class="login-wrap" id="loadingScreen">
+  <div style="text-align:center;">
+    <div class="icon-badge" style="width:56px;height:56px;border-radius:18px;margin:0 auto 16px;">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+    </div>
+    <div style="font-weight:800;font-size:18px;margin-bottom:8px;">1인1역 관리 시스템</div>
+    <div style="color:var(--text-dim);font-size:13px;margin-bottom:20px;" id="loadingMsg">연결 중...</div>
+    <div style="width:40px;height:40px;border:3px solid var(--border);border-top-color:var(--green-500);border-radius:50%;animation:spin .8s linear infinite;margin:0 auto;"></div>
+  </div>
+</div>
+
 <!-- ============ LOGIN ============ -->
-<div class="login-wrap" id="loginScreen">
+<div class="login-wrap hidden" id="loginScreen">
   <div class="login-box">
-    <div class="icon-badge"><svg viewBox="0 0 24 24" fill="none" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></div>
-    <h1 id="loginTitle">1인1역 관리 시스템</h1>
-    <div class="sub" id="loginSub">이름과 비밀번호로 로그인하세요</div>
-    <div class="field"><label>이름</label><input id="loginName" placeholder="이름 입력"></div>
-    <div class="field"><label>비밀번호</label><input id="loginPw" type="password" placeholder="비밀번호 입력"></div>
-    <button class="btn" style="width:100%; justify-content:center;" id="loginBtn" onclick="handleLogin()">로그인</button>
+    <div class="icon-badge" style="width:52px;height:52px;border-radius:18px;margin:0 auto 16px;">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+    </div>
+    <h1>1인1역 관리 시스템</h1>
+    <div class="sub">이름과 비밀번호로 로그인해줘</div>
+    <div class="field"><label>이름</label><input id="loginName" placeholder="이름 입력" onkeydown="if(event.key==='Enter') document.getElementById('loginPw').focus()"></div>
+    <div class="field"><label>비밀번호</label><input id="loginPw" type="password" placeholder="비밀번호 입력" onkeydown="if(event.key==='Enter') handleLogin()"></div>
+    <button class="btn" style="width:100%; justify-content:center; margin-top:4px;" onclick="handleLogin()" id="loginBtn">로그인</button>
     <div class="err-msg" id="loginErr"></div>
   </div>
 </div>
 
-<!-- ============ SETUP (최초 관리자 생성) ============ -->
+<!-- ============ SETUP (최초 관리자 회원가입) ============ -->
 <div class="login-wrap hidden" id="setupScreen">
-  <div class="login-box">
-    <div class="icon-badge"><svg viewBox="0 0 24 24" fill="none" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg></div>
-    <h1>최초 전체관리자 계정 생성</h1>
-    <div class="sub">아직 계정이 없어요. 첫 관리자 계정을 만들어주세요</div>
-    <div class="field"><label>이름</label><input id="setupName" placeholder="이름 입력"></div>
-    <div class="field"><label>비밀번호</label><input id="setupPw" type="password" placeholder="비밀번호 입력"></div>
-    <button class="btn" style="width:100%; justify-content:center;" onclick="handleSetup()">관리자 계정 만들기</button>
+  <div class="login-box" style="max-width:400px;">
+    <div class="icon-badge" style="width:52px;height:52px;border-radius:18px;margin:0 auto 16px;background:var(--indigo-b);">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="stroke:#fff;"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M19 8v6M22 11h-6"/></svg>
+    </div>
+    <h1 style="font-size:17px;">관리자 계정 만들기</h1>
+    <div class="sub">아직 계정이 없어요. 관리자 계정을 먼저 만들어줘.</div>
+    <div class="field"><label>이름 <span style="color:var(--danger);">*</span></label><input id="setupName" placeholder="실명 입력"></div>
+    <div class="field"><label>이메일 <span style="color:var(--danger);">*</span></label><input id="setupEmail" type="email" placeholder="example@email.com"></div>
+    <div class="field"><label>전화번호 <span style="color:var(--danger);">*</span></label><input id="setupPhone" type="tel" placeholder="010-0000-0000" oninput="formatPhone(this)"></div>
+    <div class="field"><label>비밀번호 <span style="color:var(--danger);">*</span></label>
+      <input id="setupPw" type="password" placeholder="6자 이상" oninput="checkPwStrength(this.value)">
+      <div id="setupPwStrength" style="height:4px;border-radius:2px;margin-top:4px;background:var(--gray-soft);overflow:hidden;"><div id="setupPwBar" style="height:100%;width:0%;transition:width .3s;"></div></div>
+    </div>
+    <div class="field"><label>비밀번호 확인 <span style="color:var(--danger);">*</span></label><input id="setupPw2" type="password" placeholder="비밀번호 재입력"></div>
+    <button class="btn" style="width:100%;justify-content:center;" onclick="handleSetup()">관리자 계정 만들기</button>
     <div class="err-msg" id="setupErr"></div>
   </div>
 </div>
@@ -414,32 +435,59 @@ window.addEventListener('DOMContentLoaded', init);
 
 function init() {
   applyTheme(localStorage.getItem('theme') || 'system');
+  showScreen('loading');
 
   if (!dbReady) {
-    document.getElementById('loginErr').textContent =
-      'Firebase 초기화 실패: ' + (firebaseInitError || '알 수 없는 오류') + ' — 이 메시지를 그대로 복사해서 알려줘.';
+    document.getElementById('loadingMsg').textContent =
+      'Firebase 초기화 실패: ' + (typeof firebaseInitError !== 'undefined' ? firebaseInitError : '알 수 없는 오류') +
+      ' — Authentication > Sign-in method에서 "익명" 로그인 켜져 있는지, RTDB가 만들어져 있는지 확인해줘.';
     return;
   }
 
-  // RTDB 규칙이 "auth != null"을 요구하므로, 접속하자마자 익명 로그인부터 진행
-  auth.signInAnonymously().catch(e => {
-    console.error('익명 로그인 실패:', e);
-    document.getElementById('loginErr').textContent =
-      '익명 로그인 실패: ' + (e && e.message ? e.message : e) +
-      ' — Authentication > Sign-in method에서 "익명" 로그인이 켜져 있는지, Realtime Database가 실제로 만들어져 있는지 확인해줘.';
-  });
+  auth.signInAnonymously()
+    .then(() => { document.getElementById('loadingMsg').textContent = '데이터 로드 중...'; })
+    .catch(e => {
+      document.getElementById('loadingMsg').textContent =
+        '익명 로그인 실패: ' + (e.message || e) +
+        ' — Firebase Console > Authentication > Sign-in method > "익명" 사용 설정 켜줘.';
+    });
 
   auth.onAuthStateChanged(user => {
-    if (user) {
+    if (!user) return;
+    db.ref('users').once('value').then(snap => {
+      const users = snap.val() || {};
+      cache.users = users;
+      const hasAdmin = Object.values(users).some(u => u.systemRole === 'admin');
+
+      const saved = JSON.parse(localStorage.getItem('session') || 'null');
+      if (saved && saved.uid && users[saved.uid]) {
+        const u = users[saved.uid];
+        currentUser = { uid: saved.uid, name: u.name, systemRole: u.systemRole };
+        attachRealtimeListeners();
+        enterApp();
+        return;
+      }
+
+      showScreen(!hasAdmin ? 'setup' : 'login');
       attachRealtimeListeners();
-      tryRestoreSession();
-    }
+    }).catch(e => {
+      document.getElementById('loadingMsg').textContent =
+        'DB 읽기 실패: ' + (e.message || e) + ' — RTDB 규칙이 auth != null인지 확인해줘.';
+    });
   });
+}
+
+function showScreen(name) {
+  ['loadingScreen', 'loginScreen', 'setupScreen'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.classList.toggle('hidden', id !== name + 'Screen');
+  });
+  document.getElementById('app').classList.remove('active');
 }
 
 function attachRealtimeListeners() {
   if (!dbReady) return;
-  const paths = ['users', 'duties', 'periods', 'completions', 'votes', 'grades', 'complaints', 'applicationVotes', 'notices', 'polls', 'pollVotes', 'memos', 'groupSets', 'meetings', 'meetingModeratorVotes', 'settings'];
+  const paths = ['users', 'duties', 'periods', 'completions', 'votes', 'grades', 'complaints', 'notices', 'polls', 'pollVotes', 'memos', 'groupSets', 'meetings', 'meetingModeratorVotes', 'settings'];
   paths.forEach(path => {
     db.ref(path).on('value', snap => {
       const val = snap.val() || (path === 'settings' ? { currentPeriodId: null, voteCycle: 'weekly', gradeThresholds: { a: 90, b: 75, c: 50 } } : {});
@@ -449,16 +497,15 @@ function attachRealtimeListeners() {
   });
 }
 
-// meetingMessages는 회의 입장할 때만 해당 회의 것만 구독
 let activeMeetingListener = null;
 function subscribeMeetingMessages(meetingId) {
   if (activeMeetingListener) {
-    db.ref(`meetingMessages/${activeMeetingListener}`).off();
+    db.ref().off();
     activeMeetingListener = null;
   }
   if (!meetingId) return;
   activeMeetingListener = meetingId;
-  db.ref(`meetingMessages/${meetingId}`).on('value', snap => {
+  db.ref().on('value', snap => {
     if (!cache.meetingMessages) cache.meetingMessages = {};
     cache.meetingMessages[meetingId] = snap.val() || {};
     afterCacheUpdate('meetingMessages');
@@ -466,53 +513,24 @@ function subscribeMeetingMessages(meetingId) {
 }
 
 function afterCacheUpdate(path) {
-  if (path === 'users') {
-    const hasUsers = Object.keys(cache.users || {}).length > 0;
-    if (!currentUser) {
-      document.getElementById('setupScreen').classList.toggle('hidden', hasUsers);
-      document.getElementById('loginScreen').classList.toggle('hidden', !hasUsers);
-    }
-  }
   if (!currentUser) return;
-
-  // 회의 채팅방, AI 채팅: input에 포커스가 있으면 전체 리렌더 건너뜀
-  // meetingMessages/meetingModeratorVotes 업데이트면 채팅 영역만 부분 리렌더
   if (path === 'meetingMessages' || path === 'meetingModeratorVotes') {
     if (currentPage === 'meetings' && openMeetingId) {
-      const focused = document.activeElement;
       const inp = document.getElementById('meetingChatInput');
-      if (inp && focused === inp) {
-        // 포커스 있는 동안은 채팅 영역만 업데이트
+      if (inp && document.activeElement === inp) {
         const wrap = document.getElementById('chatWrap');
         if (wrap) {
           const msgs = Object.entries(cache.meetingMessages[openMeetingId] || {}).sort((a, b) => (a[1].createdAt || 0) - (b[1].createdAt || 0));
-          wrap.innerHTML = msgs.length ? msgs.map(([msgId, msg]) => renderChatMessage(openMeetingId, msgId, msg)).join('') : `<div class="empty">아직 메시지가 없어요</div>`;
+          wrap.innerHTML = msgs.length ? msgs.map(([msgId, msg]) => renderChatMessage(openMeetingId, msgId, msg)).join('') : '<div class="empty">아직 메시지가 없어요</div>';
           wrap.scrollTop = wrap.scrollHeight;
         }
         return;
       }
     }
   }
-
-  // AI 채팅 탭은 리렌더 건너뜀 (대화 중 방해 X)
   if (currentPage === 'ai') return;
-
   buildNav();
   renderPage(currentPage);
-}
-
-function tryRestoreSession() {
-  const saved = JSON.parse(localStorage.getItem('session') || 'null');
-  if (saved && saved.uid) {
-    // users 로드를 약간 기다렸다가 검증
-    setTimeout(() => {
-      const u = cache.users[saved.uid];
-      if (u) {
-        currentUser = { uid: saved.uid, name: u.name, systemRole: u.systemRole };
-        enterApp();
-      }
-    }, 400);
-  }
 }
 
 /* ================= AUTH ================= */
@@ -522,48 +540,86 @@ async function hashPassword(pw) {
   return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
 }
 
+/* ================= AUTH ================= */
+async function hashPassword(pw) {
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(pw));
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+function formatPhone(input) {
+  let v = input.value.replace(/\D/g, '').slice(0, 11);
+  if (v.length <= 3) input.value = v;
+  else if (v.length <= 7) input.value = v.slice(0,3) + '-' + v.slice(3);
+  else input.value = v.slice(0,3) + '-' + v.slice(3,7) + '-' + v.slice(7);
+}
+
+function checkPwStrength(pw) {
+  let score = 0;
+  if (pw.length >= 6) score++;
+  if (pw.length >= 10) score++;
+  if (/[A-Z]/.test(pw)) score++;
+  if (/[0-9]/.test(pw)) score++;
+  if (/[^A-Za-z0-9]/.test(pw)) score++;
+  const colors = ['#ef4444','#f59e0b','#eab308','#22c55e','#16a34a'];
+  const bar = document.getElementById('setupPwBar');
+  if (bar) { bar.style.width = (score * 20) + '%'; bar.style.background = colors[score-1] || '#ef4444'; }
+  return score;
+}
+
 async function handleSetup() {
   const name = document.getElementById('setupName').value.trim();
+  const email = document.getElementById('setupEmail').value.trim();
+  const phone = document.getElementById('setupPhone').value.trim();
   const pw = document.getElementById('setupPw').value;
+  const pw2 = document.getElementById('setupPw2').value;
   const errEl = document.getElementById('setupErr');
   errEl.textContent = '';
-  if (!dbReady) { errEl.textContent = 'Firebase 설정이 필요해요 (app.js 상단 참고)'; return; }
-  if (!name || !pw) { errEl.textContent = '이름과 비밀번호를 모두 입력해줘'; return; }
-  if (pw.length < 4) { errEl.textContent = '비밀번호는 4자 이상으로 해줘'; return; }
+  if (!name) { errEl.textContent = '이름을 입력해줘'; return; }
+  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { errEl.textContent = '올바른 이메일을 입력해줘'; return; }
+  if (!phone || phone.replace(/\D/g,'').length < 10) { errEl.textContent = '전화번호를 올바르게 입력해줘'; return; }
+  if (pw.length < 6) { errEl.textContent = '비밀번호는 6자 이상으로 해줘'; return; }
+  if (pw !== pw2) { errEl.textContent = '비밀번호가 일치하지 않아'; return; }
   const pwHash = await hashPassword(pw);
   const uid = db.ref('users').push().key;
   db.ref('users/' + uid).set({
-    name, password: pwHash, systemRole: 'admin', createdAt: Date.now()
+    name, email, phone, password: pwHash, systemRole: 'admin', createdAt: Date.now()
   }).then(() => {
     currentUser = { uid, name, systemRole: 'admin' };
     localStorage.setItem('session', JSON.stringify({ uid }));
     enterApp();
-  }).catch(e => errEl.textContent = '생성 실패: ' + e.message);
+  }).catch(e => { errEl.textContent = '생성 실패: ' + e.message; });
 }
 
 async function handleLogin() {
   const name = document.getElementById('loginName').value.trim();
   const pw = document.getElementById('loginPw').value;
   const errEl = document.getElementById('loginErr');
+  const btn = document.getElementById('loginBtn');
   errEl.textContent = '';
-  if (!dbReady) { errEl.textContent = 'Firebase 설정이 필요해요 (app.js 상단 참고)'; return; }
   if (!name || !pw) { errEl.textContent = '이름과 비밀번호를 입력해줘'; return; }
+  if (btn) btn.textContent = '확인 중...';
   const pwHash = await hashPassword(pw);
-  const entry = Object.entries(cache.users || {}).find(([id, u]) => u.name === name && u.password === pwHash);
+  // cache.users에 이미 있으면 바로 비교, 없으면 DB에서 다시 읽기
+  let users = cache.users || {};
+  if (!Object.keys(users).length) {
+    const snap = await db.ref('users').once('value');
+    users = snap.val() || {};
+    cache.users = users;
+  }
+  const entry = Object.entries(users).find(([id, u]) => u.name === name && u.password === pwHash);
   if (!entry) {
-    // 구버전 평문 호환: 해시 실패 시 평문으로도 한번 더 비교 (마이그레이션용)
-    const legacyEntry = Object.entries(cache.users || {}).find(([id, u]) => u.name === name && u.password === pw);
-    if (legacyEntry) {
-      // 평문 → 해시로 자동 마이그레이션
-      const [legacyUid] = legacyEntry;
+    // 구버전 평문 호환
+    const legacy = Object.entries(users).find(([id, u]) => u.name === name && u.password === pw);
+    if (legacy) {
+      const [legacyUid, lu] = legacy;
       await db.ref('users/' + legacyUid + '/password').set(pwHash);
-      const [uid, u] = legacyEntry;
-      currentUser = { uid, name: u.name, systemRole: u.systemRole };
-      localStorage.setItem('session', JSON.stringify({ uid }));
+      currentUser = { uid: legacyUid, name: lu.name, systemRole: lu.systemRole };
+      localStorage.setItem('session', JSON.stringify({ uid: legacyUid }));
       enterApp();
       return;
     }
     errEl.textContent = '이름 또는 비밀번호가 맞지 않아';
+    if (btn) btn.textContent = '로그인';
     return;
   }
   const [uid, u] = entry;
@@ -575,15 +631,18 @@ async function handleLogin() {
 function handleLogout() {
   currentUser = null;
   localStorage.removeItem('session');
-  document.getElementById('app').classList.remove('active');
-  document.getElementById('loginScreen').classList.remove('hidden');
+  showScreen('login');
   document.getElementById('loginName').value = '';
   document.getElementById('loginPw').value = '';
+  const btn = document.getElementById('loginBtn');
+  if (btn) btn.textContent = '로그인';
 }
 
 function enterApp() {
-  document.getElementById('loginScreen').classList.add('hidden');
-  document.getElementById('setupScreen').classList.add('hidden');
+  ['loadingScreen','loginScreen','setupScreen'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.classList.add('hidden');
+  });
   document.getElementById('app').classList.add('active');
   document.getElementById('userChipName').textContent =
     currentUser.name + (currentUser.systemRole === 'admin' ? ' · 전체관리자' : '');
@@ -591,6 +650,7 @@ function enterApp() {
   buildNav();
   renderPage('dashboard');
 }
+
 
 /* ================= THEME ================= */
 function setTheme(mode) {
