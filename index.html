@@ -836,7 +836,6 @@ function navItemsList() {
     items.push({ id: 'ai', label: 'AI 브리핑', section: '관리자' });
     items.push({ id: 'accounts', label: '계정 관리', section: '관리자' });
     items.push({ id: 'duties', label: '1인1역 관리', section: '관리자' });
-    items.push({ id: 'grades', label: '등급 관리', section: '관리자' });
     items.push({ id: 'settings', label: '설정', section: '관리자' });
   }
   items.push({ id: 'me', label: '내 정보', section: '계정' });
@@ -918,7 +917,6 @@ function renderPage(id) {
     apply: ['1인1역 신청', '하고 싶은 1인1역에 신청하고 동료 투표로 결정돼요'],
     checks: ['임무 확인', '담당 멤버들의 임무 완료 여부를 체크해요'],
     vote: ['투표', '동료 평가와 설문에 참여해요'],
-    grades: ['등급 관리', '주기별 O/X 결과와 등급을 확인·수정해요'],
     complaints: ['민원', '민원을 제기하거나 처리해요'],
     settings: ['설정', '투표 주기와 민원 카테고리를 관리해요'],
     ai: ['AI 브리핑', '정해진 질문으로 현재 상황을 요약해서 보여줘요'],
@@ -937,7 +935,7 @@ function renderPage(id) {
 
   const renderers = {
     dashboard: renderDashboard, accounts: renderAccounts, duties: renderDuties, apply: renderApply,
-    checks: renderChecks, vote: renderVote, grades: renderGrades,
+    checks: renderChecks, vote: renderVote,
     complaints: renderComplaints, settings: renderSettings, ai: renderAI, me: renderMe,
     myDuties: renderMyDuties, memos: renderMemos, groups: renderGroups, meetings: renderMeetings,
     notices: renderNotices
@@ -959,18 +957,6 @@ function renderDashboard() {
     totalVotes = vals.length;
     oCount = vals.filter(v => v === 'O').length;
   }
-  let myGrade = null;
-  if (pid && cache.grades[pid] && cache.grades[pid][currentUser.uid]) {
-    const g = cache.grades[pid][currentUser.uid];
-    myGrade = g.finalGrade || g.autoGrade;
-  }
-
-  // 안내 카드: 오늘 해야 할 일 총량
-  const checksBadge = navBadgeCount('checks');
-  const voteBadge = navBadgeCount('vote');
-  const todoCount = checksBadge + voteBadge + (isAdmin() ? pendingComplaints : 0);
-
-  // 타일: 주요 메뉴 바로가기
   const tileDefs = [
     { id: 'myDuties', label: '내 1인1역' },
     { id: 'vote', label: '투표' },
@@ -980,7 +966,7 @@ function renderDashboard() {
   ];
   if (isManagerOfAny()) tileDefs.unshift({ id: 'checks', label: '임무 확인' });
   if (isAdmin()) {
-    tileDefs.push({ id: 'ai', label: 'AI 브리핑' }, { id: 'accounts', label: '계정 관리' }, { id: 'duties', label: '1인1역 관리' }, { id: 'grades', label: '등급 관리' });
+    tileDefs.push({ id: 'ai', label: 'AI 브리핑' }, { id: 'accounts', label: '계정 관리' }, { id: 'duties', label: '1인1역 관리' });
   }
 
   // 체크리스트: 내가 관리하는 1인1역 대상자들의 완료 현황 (관리자 있을 때만), 없으면 이번 주기 투표 현황
