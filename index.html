@@ -294,6 +294,18 @@ td:first-child{ font-weight:700; color:var(--text); }
   </div>
 </div>
 
+<!-- ============ LOADING ============ -->
+<div class="login-wrap" id="loadingScreen">
+  <div style="text-align:center;">
+    <div class="icon-badge" style="width:56px;height:56px;border-radius:18px;margin:0 auto 16px;">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+    </div>
+    <div style="font-weight:800;font-size:18px;margin-bottom:8px;">1인1역 관리 시스템</div>
+    <div style="color:var(--text-dim);font-size:13px;margin-bottom:20px;" id="loadingMsg">연결 중...</div>
+    <div style="width:40px;height:40px;border:3px solid var(--border);border-top-color:var(--green-500);border-radius:50%;animation:spin .8s linear infinite;margin:0 auto;"></div>
+  </div>
+</div>
+
 <!-- ============ LOGIN ============ -->
 <div class="login-wrap hidden" id="loginScreen">
   <div class="login-box">
@@ -304,7 +316,7 @@ td:first-child{ font-weight:700; color:var(--text); }
     <div class="sub">이름과 비밀번호로 로그인해줘</div>
     <div class="field"><label>이름</label><input id="loginName" placeholder="이름 입력" onkeydown="if(event.key==='Enter') document.getElementById('loginPw').focus()"></div>
     <div class="field"><label>비밀번호</label><input id="loginPw" type="password" placeholder="비밀번호 입력" onkeydown="if(event.key==='Enter') handleLogin()"></div>
-    <button class="btn" style="width:100%; justify-content:center; margin-top:4px;" onclick="handleLogin()" id="loginBtn">로그인</button>
+    <button class="btn" style="width:100%;justify-content:center;margin-top:4px;" onclick="handleLogin()" id="loginBtn">로그인</button>
     <div class="err-msg" id="loginErr"></div>
   </div>
 </div>
@@ -312,7 +324,7 @@ td:first-child{ font-weight:700; color:var(--text); }
 <!-- ============ SETUP (최초 관리자 회원가입) ============ -->
 <div class="login-wrap hidden" id="setupScreen">
   <div class="login-box" style="max-width:400px;">
-    <div class="icon-badge" style="width:52px;height:52px;border-radius:18px;margin:0 auto 16px;background:var(--indigo-b);">
+    <div class="icon-badge" style="width:52px;height:52px;border-radius:18px;margin:0 auto 16px;background:#4f46e5;">
       <svg viewBox="0 0 24 24" fill="none" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="stroke:#fff;"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M19 8v6M22 11h-6"/></svg>
     </div>
     <h1 style="font-size:17px;">관리자 계정 만들기</h1>
@@ -322,7 +334,7 @@ td:first-child{ font-weight:700; color:var(--text); }
     <div class="field"><label>전화번호 <span style="color:var(--danger);">*</span></label><input id="setupPhone" type="tel" placeholder="010-0000-0000" oninput="formatPhone(this)"></div>
     <div class="field"><label>비밀번호 <span style="color:var(--danger);">*</span></label>
       <input id="setupPw" type="password" placeholder="6자 이상" oninput="checkPwStrength(this.value)">
-      <div id="setupPwStrength" style="height:4px;border-radius:2px;margin-top:4px;background:var(--gray-soft);overflow:hidden;"><div id="setupPwBar" style="height:100%;width:0%;transition:width .3s;"></div></div>
+      <div style="height:4px;border-radius:2px;margin-top:4px;background:var(--gray-soft);overflow:hidden;"><div id="setupPwBar" style="height:100%;width:0%;transition:width .3s;"></div></div>
     </div>
     <div class="field"><label>비밀번호 확인 <span style="color:var(--danger);">*</span></label><input id="setupPw2" type="password" placeholder="비밀번호 재입력"></div>
     <button class="btn" style="width:100%;justify-content:center;" onclick="handleSetup()">관리자 계정 만들기</button>
@@ -369,6 +381,7 @@ td:first-child{ font-weight:700; color:var(--text); }
 <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-database-compat.js"></script>
 <script>
+
 /* =========================================================
    1인1역 관리 시스템 - app.js
    ---------------------------------------------------------
@@ -410,10 +423,9 @@ try {
 const cache = {
   users: {},               // uid -> {name, password, systemRole, createdAt}
   duties: {},              // dutyId -> {title, color, memberIds:{}, managerIds:{}}
-  periods: {},             // periodId -> {label, type, active, createdAt}
-  completions: {},         // periodId -> dutyId -> uid -> {done, checkedBy, checkedAt}
-  votes: {},               // periodId -> targetUid -> voterUid -> 'O'|'X'
-  grades: {},              // periodId -> uid -> {autoGrade, finalGrade, overridden}
+  completions: {},         // dutyId -> uid -> {done, checkedBy, checkedAt}
+  peerEvals: {},           // evalId -> {question, createdBy, closed, approved, createdAt}
+  peerEvalVotes: {},       // evalId -> voterUid -> targetUid -> 'O'|'X'
   complaints: {},          // id -> {title, content, targetUid, submittedBy, status, createdAt}
   applicationVotes: {},    // dutyId -> applicantUid -> voterUid -> 'O'|'X'
   notices: {},             // id -> {title, content, createdBy, createdAt, pinned}
@@ -424,7 +436,7 @@ const cache = {
   meetings: {},             // meetingId -> {title, participantIds:{}, moderatorMode, moderatorUid, status, conclusion, createdAt, createdBy}
   meetingModeratorVotes: {}, // meetingId -> voterUid -> candidateUid
   meetingMessages: {},      // meetingId -> msgId -> {uid, text, type, command, pollVotes:{}, createdAt}
-  settings: { currentPeriodId: null, voteCycle: 'weekly', gradeThresholds: { a: 90, b: 75, c: 50 } }
+  settings: { gradeThresholds: { a: 90, b: 75, c: 50 } }
 };
 
 let currentUser = null;   // {uid, name, systemRole}
@@ -440,7 +452,7 @@ function init() {
   if (!dbReady) {
     document.getElementById('loadingMsg').textContent =
       'Firebase 초기화 실패: ' + (typeof firebaseInitError !== 'undefined' ? firebaseInitError : '알 수 없는 오류') +
-      ' — Authentication > Sign-in method에서 "익명" 로그인 켜져 있는지, RTDB가 만들어져 있는지 확인해줘.';
+      ' — Authentication > 익명 로그인 켜져 있는지, RTDB 생성됐는지 확인해줘.';
     return;
   }
 
@@ -448,8 +460,7 @@ function init() {
     .then(() => { document.getElementById('loadingMsg').textContent = '데이터 로드 중...'; })
     .catch(e => {
       document.getElementById('loadingMsg').textContent =
-        '익명 로그인 실패: ' + (e.message || e) +
-        ' — Firebase Console > Authentication > Sign-in method > "익명" 사용 설정 켜줘.';
+        '익명 로그인 실패: ' + (e.message || e) + ' — Firebase Console > Authentication > 익명 사용 설정 켜줘.';
     });
 
   auth.onAuthStateChanged(user => {
@@ -458,7 +469,6 @@ function init() {
       const users = snap.val() || {};
       cache.users = users;
       const hasAdmin = Object.values(users).some(u => u.systemRole === 'admin');
-
       const saved = JSON.parse(localStorage.getItem('session') || 'null');
       if (saved && saved.uid && users[saved.uid]) {
         const u = users[saved.uid];
@@ -467,18 +477,17 @@ function init() {
         enterApp();
         return;
       }
-
       showScreen(!hasAdmin ? 'setup' : 'login');
       attachRealtimeListeners();
     }).catch(e => {
       document.getElementById('loadingMsg').textContent =
-        'DB 읽기 실패: ' + (e.message || e) + ' — RTDB 규칙이 auth != null인지 확인해줘.';
+        'DB 읽기 실패: ' + (e.message || e) + ' — RTDB 규칙 확인해줘.';
     });
   });
 }
 
 function showScreen(name) {
-  ['loadingScreen', 'loginScreen', 'setupScreen'].forEach(id => {
+  ['loadingScreen','loginScreen','setupScreen'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.classList.toggle('hidden', id !== name + 'Screen');
   });
@@ -487,10 +496,10 @@ function showScreen(name) {
 
 function attachRealtimeListeners() {
   if (!dbReady) return;
-  const paths = ['users', 'duties', 'periods', 'completions', 'votes', 'grades', 'complaints', 'notices', 'polls', 'pollVotes', 'memos', 'groupSets', 'meetings', 'meetingModeratorVotes', 'settings'];
+  const paths = ['users', 'duties', 'completions', 'peerEvals', 'peerEvalVotes', 'complaints', 'notices', 'polls', 'pollVotes', 'memos', 'groupSets', 'meetings', 'meetingModeratorVotes', 'settings'];
   paths.forEach(path => {
     db.ref(path).on('value', snap => {
-      const val = snap.val() || (path === 'settings' ? { currentPeriodId: null, voteCycle: 'weekly', gradeThresholds: { a: 90, b: 75, c: 50 } } : {});
+      const val = snap.val() || (path === 'settings' ? { gradeThresholds: { a: 90, b: 75, c: 50 } } : {});
       cache[path] = val;
       afterCacheUpdate(path);
     });
@@ -499,13 +508,10 @@ function attachRealtimeListeners() {
 
 let activeMeetingListener = null;
 function subscribeMeetingMessages(meetingId) {
-  if (activeMeetingListener) {
-    db.ref().off();
-    activeMeetingListener = null;
-  }
+  if (activeMeetingListener) { db.ref('meetingMessages/' + activeMeetingListener).off(); activeMeetingListener = null; }
   if (!meetingId) return;
   activeMeetingListener = meetingId;
-  db.ref().on('value', snap => {
+  db.ref('meetingMessages/' + meetingId).on('value', snap => {
     if (!cache.meetingMessages) cache.meetingMessages = {};
     cache.meetingMessages[meetingId] = snap.val() || {};
     afterCacheUpdate('meetingMessages');
@@ -520,8 +526,8 @@ function afterCacheUpdate(path) {
       if (inp && document.activeElement === inp) {
         const wrap = document.getElementById('chatWrap');
         if (wrap) {
-          const msgs = Object.entries(cache.meetingMessages[openMeetingId] || {}).sort((a, b) => (a[1].createdAt || 0) - (b[1].createdAt || 0));
-          wrap.innerHTML = msgs.length ? msgs.map(([msgId, msg]) => renderChatMessage(openMeetingId, msgId, msg)).join('') : '<div class="empty">아직 메시지가 없어요</div>';
+          const msgs = Object.entries((cache.meetingMessages || {})[openMeetingId] || {}).sort((a,b)=>(a[1].createdAt||0)-(b[1].createdAt||0));
+          wrap.innerHTML = msgs.length ? msgs.map(([id,msg])=>renderChatMessage(openMeetingId,id,msg)).join('') : '<div class="empty">아직 메시지가 없어요</div>';
           wrap.scrollTop = wrap.scrollHeight;
         }
         return;
@@ -533,123 +539,110 @@ function afterCacheUpdate(path) {
   renderPage(currentPage);
 }
 
-/* ================= AUTH ================= */
-/* ---- 비밀번호 해싱 (Web Crypto API / SHA-256) ---- */
+/* ---- 비밀번호 해싱 (Web Crypto / SHA-256) ---- */
 async function hashPassword(pw) {
   const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(pw));
-  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
-}
-
-/* ================= AUTH ================= */
-async function hashPassword(pw) {
-  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(pw));
-  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join('');
 }
 
 function formatPhone(input) {
-  let v = input.value.replace(/\D/g, '').slice(0, 11);
+  let v = input.value.replace(/\D/g,'').slice(0,11);
   if (v.length <= 3) input.value = v;
-  else if (v.length <= 7) input.value = v.slice(0,3) + '-' + v.slice(3);
-  else input.value = v.slice(0,3) + '-' + v.slice(3,7) + '-' + v.slice(7);
+  else if (v.length <= 7) input.value = v.slice(0,3)+'-'+v.slice(3);
+  else input.value = v.slice(0,3)+'-'+v.slice(3,7)+'-'+v.slice(7);
 }
 
 function checkPwStrength(pw) {
-  let score = 0;
-  if (pw.length >= 6) score++;
-  if (pw.length >= 10) score++;
-  if (/[A-Z]/.test(pw)) score++;
-  if (/[0-9]/.test(pw)) score++;
-  if (/[^A-Za-z0-9]/.test(pw)) score++;
-  const colors = ['#ef4444','#f59e0b','#eab308','#22c55e','#16a34a'];
-  const bar = document.getElementById('setupPwBar');
-  if (bar) { bar.style.width = (score * 20) + '%'; bar.style.background = colors[score-1] || '#ef4444'; }
-  return score;
+  let s = 0;
+  if (pw.length>=6) s++; if (pw.length>=10) s++;
+  if (/[A-Z]/.test(pw)) s++; if (/[0-9]/.test(pw)) s++;
+  if (/[^A-Za-z0-9]/.test(pw)) s++;
+  const colors=['#ef4444','#f59e0b','#eab308','#22c55e','#16a34a'];
+  const bar=document.getElementById('setupPwBar');
+  if(bar){bar.style.width=(s*20)+'%';bar.style.background=colors[s-1]||'#ef4444';}
 }
 
 async function handleSetup() {
-  const name = document.getElementById('setupName').value.trim();
-  const email = document.getElementById('setupEmail').value.trim();
-  const phone = document.getElementById('setupPhone').value.trim();
-  const pw = document.getElementById('setupPw').value;
-  const pw2 = document.getElementById('setupPw2').value;
-  const errEl = document.getElementById('setupErr');
-  errEl.textContent = '';
-  if (!name) { errEl.textContent = '이름을 입력해줘'; return; }
-  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { errEl.textContent = '올바른 이메일을 입력해줘'; return; }
-  if (!phone || phone.replace(/\D/g,'').length < 10) { errEl.textContent = '전화번호를 올바르게 입력해줘'; return; }
-  if (pw.length < 6) { errEl.textContent = '비밀번호는 6자 이상으로 해줘'; return; }
-  if (pw !== pw2) { errEl.textContent = '비밀번호가 일치하지 않아'; return; }
-  const pwHash = await hashPassword(pw);
-  const uid = db.ref('users').push().key;
-  db.ref('users/' + uid).set({
-    name, email, phone, password: pwHash, systemRole: 'admin', createdAt: Date.now()
-  }).then(() => {
-    currentUser = { uid, name, systemRole: 'admin' };
-    localStorage.setItem('session', JSON.stringify({ uid }));
-    enterApp();
-  }).catch(e => { errEl.textContent = '생성 실패: ' + e.message; });
+  const name=document.getElementById('setupName').value.trim();
+  const email=document.getElementById('setupEmail').value.trim();
+  const phone=document.getElementById('setupPhone').value.trim();
+  const pw=document.getElementById('setupPw').value;
+  const pw2=document.getElementById('setupPw2').value;
+  const errEl=document.getElementById('setupErr');
+  errEl.textContent='';
+  if(!name){errEl.textContent='이름을 입력해줘';return;}
+  if(!email||!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){errEl.textContent='올바른 이메일을 입력해줘';return;}
+  if(!phone||phone.replace(/\D/g,'').length<10){errEl.textContent='전화번호를 올바르게 입력해줘';return;}
+  if(pw.length<6){errEl.textContent='비밀번호는 6자 이상으로 해줘';return;}
+  if(pw!==pw2){errEl.textContent='비밀번호가 일치하지 않아';return;}
+  const pwHash=await hashPassword(pw);
+  const uid=db.ref('users').push().key;
+  db.ref('users/'+uid).set({name,email,phone,password:pwHash,systemRole:'admin',createdAt:Date.now()})
+    .then(()=>{currentUser={uid,name,systemRole:'admin'};localStorage.setItem('session',JSON.stringify({uid}));enterApp();})
+    .catch(e=>{errEl.textContent='생성 실패: '+e.message;});
 }
 
 async function handleLogin() {
-  const name = document.getElementById('loginName').value.trim();
-  const pw = document.getElementById('loginPw').value;
-  const errEl = document.getElementById('loginErr');
-  const btn = document.getElementById('loginBtn');
-  errEl.textContent = '';
-  if (!name || !pw) { errEl.textContent = '이름과 비밀번호를 입력해줘'; return; }
-  if (btn) btn.textContent = '확인 중...';
-  const pwHash = await hashPassword(pw);
-  // cache.users에 이미 있으면 바로 비교, 없으면 DB에서 다시 읽기
-  let users = cache.users || {};
-  if (!Object.keys(users).length) {
-    const snap = await db.ref('users').once('value');
-    users = snap.val() || {};
-    cache.users = users;
-  }
-  const entry = Object.entries(users).find(([id, u]) => u.name === name && u.password === pwHash);
-  if (!entry) {
-    // 구버전 평문 호환
-    const legacy = Object.entries(users).find(([id, u]) => u.name === name && u.password === pw);
-    if (legacy) {
-      const [legacyUid, lu] = legacy;
-      await db.ref('users/' + legacyUid + '/password').set(pwHash);
-      currentUser = { uid: legacyUid, name: lu.name, systemRole: lu.systemRole };
-      localStorage.setItem('session', JSON.stringify({ uid: legacyUid }));
-      enterApp();
-      return;
+  const name=document.getElementById('loginName').value.trim();
+  const pw=document.getElementById('loginPw').value;
+  const errEl=document.getElementById('loginErr');
+  const btn=document.getElementById('loginBtn');
+  errEl.textContent='';
+  if(!name||!pw){errEl.textContent='이름과 비밀번호를 입력해줘';return;}
+  if(btn) btn.textContent='확인 중...';
+  const pwHash=await hashPassword(pw);
+  let users=cache.users||{};
+  if(!Object.keys(users).length){const snap=await db.ref('users').once('value');users=snap.val()||{};cache.users=users;}
+  const entry=Object.entries(users).find(([id,u])=>u.name===name&&u.password===pwHash);
+  if(!entry){
+    const legacy=Object.entries(users).find(([id,u])=>u.name===name&&u.password===pw);
+    if(legacy){
+      const[uid,lu]=legacy;
+      await db.ref('users/'+uid+'/password').set(pwHash);
+      currentUser={uid,name:lu.name,systemRole:lu.systemRole};
+      localStorage.setItem('session',JSON.stringify({uid}));
+      enterApp();return;
     }
-    errEl.textContent = '이름 또는 비밀번호가 맞지 않아';
-    if (btn) btn.textContent = '로그인';
-    return;
+    errEl.textContent='이름 또는 비밀번호가 맞지 않아';
+    if(btn) btn.textContent='로그인';return;
   }
-  const [uid, u] = entry;
-  currentUser = { uid, name: u.name, systemRole: u.systemRole };
-  localStorage.setItem('session', JSON.stringify({ uid }));
+  const[uid,u]=entry;
+  currentUser={uid,name:u.name,systemRole:u.systemRole};
+  localStorage.setItem('session',JSON.stringify({uid}));
   enterApp();
 }
 
 function handleLogout() {
-  currentUser = null;
+  currentUser=null;
   localStorage.removeItem('session');
   showScreen('login');
-  document.getElementById('loginName').value = '';
-  document.getElementById('loginPw').value = '';
-  const btn = document.getElementById('loginBtn');
-  if (btn) btn.textContent = '로그인';
+  document.getElementById('loginName').value='';
+  document.getElementById('loginPw').value='';
+  const btn=document.getElementById('loginBtn');
+  if(btn) btn.textContent='로그인';
 }
 
 function enterApp() {
-  ['loadingScreen','loginScreen','setupScreen'].forEach(id => {
-    const el = document.getElementById(id);
-    if (el) el.classList.add('hidden');
-  });
+  ['loadingScreen','loginScreen','setupScreen'].forEach(id=>{const el=document.getElementById(id);if(el)el.classList.add('hidden');});
   document.getElementById('app').classList.add('active');
-  document.getElementById('userChipName').textContent =
-    currentUser.name + (currentUser.systemRole === 'admin' ? ' · 전체관리자' : '');
+  document.getElementById('userChipName').textContent=currentUser.name+(currentUser.systemRole==='admin'?' · 전체관리자':'');
   syncThemeButtons();
   buildNav();
   renderPage('dashboard');
 }
+
+
+/* ---- 비밀번호 해싱 (Web Crypto API / SHA-256) ---- */
+
+
+/* ================= AUTH ================= */
+
+
+
+
+
+
+
 
 
 /* ================= THEME ================= */
@@ -685,8 +678,6 @@ function myManagedDuties() {
   return Object.entries(cache.duties || {}).filter(([id, d]) => d.managerIds && d.managerIds[currentUser.uid]);
 }
 function userName(uid) { return (cache.users[uid] && cache.users[uid].name) || '(삭제된 사용자)'; }
-function currentPeriodId() { return cache.settings.currentPeriodId; }
-function currentPeriod() { const id = currentPeriodId(); return id ? cache.periods[id] : null; }
 function newKey(path) { return db.ref(path).push().key; }
 function toast(msg) {
   const t = document.getElementById('toast');
@@ -756,8 +747,7 @@ const NAV_ICONS = {
 };
 
 function navBadgeCount(id) {
-  const pid = currentPeriodId();
-  if (id === 'notices') {
+    if (id === 'notices') {
     const lastSeen = Number(localStorage.getItem('noticesSeen') || 0);
     return Object.values(cache.notices || {}).filter(n => (n.createdAt || 0) > lastSeen).length;
   }
@@ -776,25 +766,20 @@ function navBadgeCount(id) {
     return Object.values(cache.memos || {}).filter(m => m.toUid === currentUser.uid && !m.read).length;
   }
   if (id === 'checks') {
-    if (!pid) return 0;
     let count = 0;
     myManagedDuties().forEach(([dutyId, d]) => {
-      const src = d.memberIds || {};
-      Object.keys(src).forEach(uid => {
-        const c = (((cache.completions[pid] || {})[dutyId] || {})[uid]) || {};
+      Object.keys(d.memberIds || {}).forEach(uid => {
+        const c = ((cache.completions[dutyId] || {})[uid]) || {};
         if (!c.done) count++;
       });
     });
     return count;
   }
   if (id === 'vote') {
-    if (!pid) return 0;
-    const others = Object.keys(cache.users || {}).filter(uid => uid !== currentUser.uid);
-    const votedCount = others.filter(uid => {
-      const v = (cache.votes[pid] || {})[uid] || {};
-      return !!v[currentUser.uid];
-    }).length;
-    return others.length - votedCount;
+    const myUnvoted = Object.entries(cache.polls || {}).filter(([pid, p]) => p.approved && !p.closed && !(cache.pollVotes[pid] || {})[currentUser.uid]).length;
+    const pendingApproval = isAdmin() ? Object.values(cache.polls || {}).filter(p => !p.approved && !p.closed).length : 0;
+    const peerPending = isAdmin() ? Object.values(cache.peerEvals || {}).filter(p => !p.approved && !p.closed).length : 0;
+    return myUnvoted + pendingApproval + peerPending;
   }
   if (id === 'complaints') {
     if (!isAdmin()) return 0;
@@ -945,44 +930,21 @@ function renderPage(id) {
 
 /* ================= DASHBOARD ================= */
 function renderDashboard() {
-  const pid = currentPeriodId();
-  const period = currentPeriod();
   const pendingComplaints = Object.values(cache.complaints || {}).filter(c => c.status === 'pending').length;
+  const pendingVotes = Object.entries(cache.polls || {}).filter(([id, p]) => p.approved && !p.closed && !(cache.pollVotes[id] || {})[currentUser.uid]).length;
+  const pendingPeerVotes = Object.entries(cache.peerEvals || {}).filter(([id, p]) => p.approved && !p.closed).length;
+  const todoCount = pendingVotes + pendingPeerVotes + (isAdmin() ? pendingComplaints : 0);
 
-  // 히어로 카드: 이번 주기에 내가 받은 O 개수
-  let oCount = 0, totalVotes = 0;
-  if (pid) {
-    const votesForMe = (cache.votes[pid] || {})[currentUser.uid] || {};
-    const vals = Object.values(votesForMe);
-    totalVotes = vals.length;
-    oCount = vals.filter(v => v === 'O').length;
-  }
-  const tileDefs = [
-    { id: 'myDuties', label: '내 1인1역' },
-    { id: 'vote', label: '투표' },
-    { id: 'complaints', label: '민원' },
-    { id: 'memos', label: '메모함' },
-    { id: 'meetings', label: '회의' },
-  ];
-  if (isManagerOfAny()) tileDefs.unshift({ id: 'checks', label: '임무 확인' });
-  if (isAdmin()) {
-    tileDefs.push({ id: 'ai', label: 'AI 브리핑' }, { id: 'accounts', label: '계정 관리' }, { id: 'duties', label: '1인1역 관리' });
-  }
-
-  // 체크리스트: 내가 관리하는 1인1역 대상자들의 완료 현황 (관리자 있을 때만), 없으면 이번 주기 투표 현황
-  let listHtml = '';
-  let listTitle = '';
-  let listDone = 0, listTotal = 0;
-  if (isManagerOfAny() && pid) {
+  let listTitle = '', listHtml = '', listDone = 0, listTotal = 0;
+  if (isManagerOfAny()) {
     const rows = [];
     myManagedDuties().forEach(([dutyId, d]) => {
-      const src = d.memberIds || {};
-      Object.keys(src).forEach(uid => {
-        const c = (((cache.completions[pid] || {})[dutyId] || {})[uid]) || {};
+      Object.keys(d.memberIds || {}).forEach(uid => {
+        const c = ((cache.completions[dutyId] || {})[uid]) || {};
         rows.push({ name: userName(uid), done: !!c.done, sub: d.title });
       });
     });
-    listTitle = '내가 확인할 목록';
+    listTitle = '임무 확인';
     listTotal = rows.length; listDone = rows.filter(r => r.done).length;
     listHtml = rows.length ? renderExpandable('dash-checks', rows.map(r => `
       <div class="list-item">
@@ -990,25 +952,12 @@ function renderDashboard() {
         <span class="lname">${esc(r.name)} <span style="color:var(--text-dim);font-weight:400;font-size:11.5px;">· ${esc(r.sub)}</span></span>
         <span class="badge ${r.done ? 'resolved' : 'pending'}">${r.done ? '완료' : '대기'}</span>
       </div>`), 5) : `<div class="empty">확인할 대상자가 없어요</div>`;
-  } else if (pid) {
-    const others = Object.entries(cache.users || {}).filter(([uid]) => uid !== currentUser.uid);
-    listTitle = '이번 주기 내 투표 현황';
-    listTotal = others.length;
-    listDone = others.filter(([uid]) => ((cache.votes[pid] || {})[uid] || {})[currentUser.uid]).length;
-    listHtml = others.length ? renderExpandable('dash-votes', others.map(([uid, u]) => {
-      const voted = !!((cache.votes[pid] || {})[uid] || {})[currentUser.uid];
-      return `<div class="list-item">
-        <span class="ldot" style="background:${voted ? 'var(--green-500)' : 'var(--danger)'}"></span>
-        <span class="lname">${esc(u.name)}</span>
-        <span class="badge ${voted ? 'resolved' : 'pending'}">${voted ? '투표완료' : '대기'}</span>
-      </div>`;
-    }), 5) : `<div class="empty">투표할 멤버가 없어요</div>`;
   }
 
   document.getElementById('pageContent').innerHTML = `
     <div class="hero-card">
-      <div class="hlabel">이번 주기 받은 O ${period ? '· ' + esc(period.label) : ''}</div>
-      <div class="hval"><span class="hicon">🌱</span>${pid ? oCount : '-'}${pid ? `<span style="font-size:14px;font-weight:600;opacity:.85;">/ ${totalVotes}표</span>` : ''}</div>
+      <div class="hlabel">1인1역 관리 시스템</div>
+      <div class="hval"><span class="hicon">🌱</span>${esc(currentUser.name)}님, 안녕하세요</div>
     </div>
     ${todoCount > 0 ? `
     <div class="notice-card">
@@ -1020,26 +969,31 @@ function renderDashboard() {
     </div>` : `
     <div class="notice-card" style="background:linear-gradient(135deg,var(--green-500),var(--green-700));">
       <span class="nemoji">🎉</span>
-      <div>
-        <div class="ntitle">오늘 할 일 다 끝냈어요</div>
-        <div class="nsub">여유롭게 둘러봐도 좋아요</div>
-      </div>
+      <div><div class="ntitle">오늘 할 일 다 끝냈어요</div><div class="nsub">여유롭게 둘러봐도 좋아요</div></div>
     </div>`}
     <div class="tile-grid">
-      ${tileDefs.map(t => {
-        const c = navBadgeCount(t.id);
+      ${[
+        { id: 'myDuties', label: '내 1인1역' },
+        { id: 'vote', label: '투표' },
+        { id: 'complaints', label: '민원' },
+        { id: 'memos', label: '메모함' },
+        { id: 'meetings', label: '회의' },
+        ...(isManagerOfAny() ? [{ id: 'checks', label: '임무 확인' }] : []),
+        ...(isAdmin() ? [{ id: 'ai', label: 'AI 브리핑' }, { id: 'accounts', label: '계정 관리' }, { id: 'duties', label: '1인1역 관리' }] : []),
+      ].map(t => {
+        const count = navBadgeCount(t.id);
         return `<button class="tile" onclick="renderPage('${t.id}')">
-          ${c > 0 ? `<span class="tbadge">${c}</span>` : ''}
-          <span class="ticon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${NAV_ICONS[t.id]}</svg></span>
+          ${count > 0 ? `<span class="tbadge">${count}</span>` : ''}
+          <span class="ticon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${NAV_ICONS[t.id]||''}</svg></span>
           <span class="tlabel">${t.label}</span>
         </button>`;
       }).join('')}
     </div>
-    ${!pid ? `<div class="card"><div class="empty">아직 활성화된 주기가 없어요.${isAdmin() ? ' 설정 탭에서 만들어봐.' : ''}</div></div>` : `
+    ${listTitle ? `
     <div class="card">
       <h2>${listTitle} ${listTotal ? `<span style="color:var(--text-dim);font-weight:600;font-size:13px;">${listDone}/${listTotal}</span>` : ''}</h2>
       ${listHtml}
-    </div>`}
+    </div>` : ''}
   `;
 }
 
@@ -1255,12 +1209,11 @@ function aiAnswer(text) {
 }
 
 function aiUnknown(text) {
-  const pid = currentPeriodId();
-  const totalMembers = Object.keys(cache.users || {}).length;
+    const totalMembers = Object.keys(cache.users || {}).length;
   const suggestions = ['오늘 요약해줘', '민원 있어?', '투표 현황', '임무 완료율', '문제 있는 거 알려줘'];
   return aiProse([
     `🤔 "<b>${esc(text)}</b>"에 정확히 맞는 데이터를 못 찾았어.`,
-    `현재 멤버 ${totalMembers}명${pid ? `, 주기 "<b>${esc(cache.periods[pid].label)}</b>" 진행 중` : ''}이야.`,
+    `현재 멤버 ${totalMembers}명${pid ? `, 주기 "<b>${esc('(주기 없음)')}</b>" 진행 중` : ''}이야.`,
     `이런 질문을 해봐: <span style="color:var(--green-600);">${suggestions.map(s => `"${s}"`).join(' · ')}</span>`
   ]);
 }
@@ -1271,10 +1224,9 @@ function aiProse(sentences) {
 
 // 추가 인텐트 응답 함수들
 function aiReplyNotVoted() {
-  const pid = currentPeriodId();
-  if (!pid) return aiProse(['활성화된 투표 주기가 없어.']);
+    if (!pid) return aiProse(['활성화된 투표 주기가 없어.']);
   const voterActivity = {};
-  Object.values(cache.votes[pid] || {}).forEach(v => Object.keys(v).forEach(uid => { voterActivity[uid] = true; }));
+  Object.values({} || {}).forEach(v => Object.keys(v).forEach(uid => { voterActivity[uid] = true; }));
   const notVotedUids = Object.entries(cache.users || {}).filter(([uid]) => !voterActivity[uid]);
   if (!notVotedUids.length) return aiProse(['🎉 <b>전원</b>이 이번 주기 투표에 참여했어!']);
   return aiProse([
@@ -1284,10 +1236,9 @@ function aiReplyNotVoted() {
 }
 
 function aiReplyTopStats() {
-  const pid = currentPeriodId();
-  if (!pid) return aiProse(['활성화된 주기가 없어.']);
+    if (!pid) return aiProse(['활성화된 주기가 없어.']);
   const ranked = Object.entries(cache.users || {}).map(([uid, u]) => {
-    const votes = Object.values((cache.votes[pid] || {})[uid] || {});
+    const votes = Object.values(({} || {})[uid] || {});
     const o = votes.filter(v => v === 'O').length;
     return { name: u.name, o, total: votes.length, pct: votes.length ? Math.round(o / votes.length * 100) : 0 };
   }).filter(r => r.total > 0).sort((a, b) => b.pct - a.pct);
@@ -1309,10 +1260,9 @@ function aiReplyProblems() {
   const emptyDuties = Object.values(cache.duties || {}).filter(d => !Object.keys(d.memberIds || {}).length);
   if (emptyDuties.length) lines.push(`⚠️ 멤버 없는 1인1역 <b>${emptyDuties.length}개</b>: ${emptyDuties.map(d => esc(d.title)).join(', ')}`);
   // 3. 투표 미참여
-  const pid = currentPeriodId();
-  if (pid) {
+    if (pid) {
     const voterActivity = {};
-    Object.values(cache.votes[pid] || {}).forEach(v => Object.keys(v).forEach(uid => { voterActivity[uid] = true; }));
+    Object.values({} || {}).forEach(v => Object.keys(v).forEach(uid => { voterActivity[uid] = true; }));
     const notVoted = Object.keys(cache.users || {}).filter(uid => !voterActivity[uid]);
     if (notVoted.length) lines.push(`⚠️ 이번 주기 미투표 <b>${notVoted.length}명</b>`);
   }
@@ -1349,9 +1299,7 @@ function aiReplyGreet() {
 }
 
 function aiReplyFullSummary() {
-  const pid = currentPeriodId();
-  const period = currentPeriod();
-  const totalMembers = Object.keys(cache.users || {}).length;
+      const totalMembers = Object.keys(cache.users || {}).length;
   const pendingComplaints = Object.values(cache.complaints || {}).filter(c => c.status === 'pending').length;
   const appsPending = [];
   Object.entries(cache.duties || {}).forEach(([dutyId, d]) => {
@@ -1441,8 +1389,7 @@ function aiReplyRecommend() {
 }
 
 function aiReplyChecks() {
-  const pid = currentPeriodId();
-  if (!pid) return aiProse(['활성화된 주기가 없어서 확인할 게 없어.']);
+    if (!pid) return aiProse(['활성화된 주기가 없어서 확인할 게 없어.']);
   const undone = [], done = [];
   Object.entries(cache.duties || {}).forEach(([dutyId, d]) => {
     Object.keys(d.memberIds || {}).forEach(uid => {
@@ -1458,36 +1405,17 @@ function aiReplyChecks() {
 }
 
 function aiReplyVotes() {
-  const pid = currentPeriodId();
-  if (!pid) return aiProse(['활성화된 투표 주기가 없어.']);
-  const total = Object.keys(cache.users || {}).length;
-  const voterActivity = {};
-  Object.values(cache.votes[pid] || {}).forEach(v => Object.keys(v).forEach(uid => { voterActivity[uid] = true; }));
-  const notVoted = Object.values(cache.users || {}).filter((u, i, a) => !voterActivity[Object.keys(cache.users)[i]]);
-  const notVotedUids = Object.entries(cache.users || {}).filter(([uid]) => !voterActivity[uid]);
-  const lines = [
-    `🗳️ <b>${esc(cache.periods[pid].label)}</b> 투표 현황`,
-    `전체 ${total}명 중 <b>${Object.keys(voterActivity).length}명</b>이 투표에 참여했어.`
-  ];
-  if (notVotedUids.length) lines.push(`아직 투표 안 한 사람: ${notVotedUids.slice(0, 5).map(([, u]) => esc(u.name)).join(', ')}${notVotedUids.length > 5 ? ` 외 ${notVotedUids.length - 5}명` : ''}`);
-  else lines.push('✅ 전원 투표에 참여했어!');
+  const active = Object.entries(cache.polls || {}).filter(([id,p])=>p.approved&&!p.closed);
+  const peer = Object.entries(cache.peerEvals || {}).filter(([id,p])=>p.approved&&!p.closed);
+  if (!active.length && !peer.length) return aiProse(['현재 진행 중인 투표나 동료평가가 없어.']);
+  const lines = ['🗳️ 현재 진행 중인 투표야.'];
+  active.forEach(([id,p])=>{ const t=pollTally(id); lines.push(`· ${esc(p.question)} (${t.total}표)`); });
+  peer.forEach(([id,p])=>{ lines.push(`· [동료평가] ${esc(p.question)}`); });
   return aiProse(lines);
 }
 
 function aiReplyGrades() {
-  const pid = currentPeriodId();
-  if (!pid) return aiProse(['활성화된 주기가 없어.']);
-  const dist = { A: [], B: [], C: [], D: [], 미평가: [] };
-  Object.entries(cache.users || {}).forEach(([uid, u]) => {
-    const g = ((cache.grades[pid] || {})[uid]) || {};
-    const grade = g.finalGrade || g.autoGrade || '미평가';
-    (dist[grade] || dist['미평가']).push(u.name);
-  });
-  const lines = [`🏅 <b>${esc(cache.periods[pid].label)}</b> 등급 분포`];
-  ['A', 'B', 'C', 'D', '미평가'].forEach(g => {
-    if (dist[g].length) lines.push(`${g === 'A' ? '🥇' : g === 'B' ? '🥈' : g === 'C' ? '🥉' : g === 'D' ? '📉' : '⬜'} <b>${g}</b>: ${dist[g].length}명 (${dist[g].slice(0, 4).join(', ')}${dist[g].length > 4 ? ' ...' : ''})`);
-  });
-  return aiProse(lines);
+  return aiProse(['등급 관리 기능이 제거됐어. 투표 결과는 투표 탭에서 확인해줘.']);
 }
 
 function aiReplyRoster() {
@@ -1513,8 +1441,7 @@ function aiReplyRecentAccounts() {
 }
 
 function aiReplyCompletion() {
-  const pid = currentPeriodId();
-  if (!pid) return aiProse(['활성화된 주기가 없어.']);
+    if (!pid) return aiProse(['활성화된 주기가 없어.']);
   const rows = Object.entries(cache.duties || {}).map(([dutyId, d]) => {
     const ids = Object.keys(d.memberIds || {});
     if (!ids.length) return null;
@@ -1572,13 +1499,11 @@ function aiReplyMemos() {
 }
 
 function aiReplyPeriod() {
-  const pid = currentPeriodId();
-  const period = currentPeriod();
-  const all = Object.entries(cache.periods || {}).sort((a, b) => (b[1].createdAt || 0) - (a[1].createdAt || 0));
-  if (!pid) return aiProse(['현재 활성화된 주기가 없어. 관리자가 설정에서 주기를 만들어야 해.']);
+  const activePolls = Object.values(cache.polls || {}).filter(p=>p.approved&&!p.closed).length;
+  const closedPolls = Object.values(cache.polls || {}).filter(p=>p.closed).length;
   return aiProse([
-    `📅 현재 주기: <b>${esc(period.label)}</b> (${period.type === 'weekly' ? '주간' : '월간'})`,
-    `총 ${all.length}개 주기 기록이 있어.`
+    `📊 현재 진행 중인 투표 ${activePolls}개, 종료된 투표 ${closedPolls}개야.`,
+    '주기 개념은 제거됐어. 필요하면 투표를 직접 만들 수 있어.'
   ]);
 }
 
@@ -1784,30 +1709,21 @@ if (!isAdmin()) { toast("권한 없어"); return; }
 }
 
 /* ================= CHECKS (1인1역 관리자) ================= */
+/* ================= CHECKS (임무 확인 - 주기 없는 버전) ================= */
 function renderChecks() {
   const managed = myManagedDuties();
-  const pid = currentPeriodId();
-
   if (!managed.length) {
-    document.getElementById('pageContent').innerHTML = `
-      <div class="info-banner">📋 관리 중인 1인1역이 없어요. 관리자가 1인1역을 배정해주면 여기서 확인할 수 있어요.</div>`;
+    document.getElementById('pageContent').innerHTML = `<div class="info-banner">📋 관리 중인 1인1역이 없어요.</div>`;
     return;
   }
-  if (!pid) {
-    document.getElementById('pageContent').innerHTML = `
-      <div class="info-banner">⏳ 활성화된 주기가 없어요. 설정에서 주기를 먼저 만들어야 해요.</div>`;
-    return;
-  }
-
   let totalDone = 0, totalCount = 0;
   managed.forEach(([dutyId, d]) => {
     Object.keys(d.memberIds || {}).forEach(uid => {
       totalCount++;
-      if ((((cache.completions[pid] || {})[dutyId] || {})[uid] || {}).done) totalDone++;
+      if (((cache.completions[dutyId] || {})[uid] || {}).done) totalDone++;
     });
   });
   const pct = totalCount ? Math.round(totalDone / totalCount * 100) : 0;
-
   document.getElementById('pageContent').innerHTML = `
     <div class="info-banner">✅ 멤버들의 임무 완료 여부를 체크해줘. 버튼을 누르면 바로 저장돼.</div>
     <div class="card" style="margin-bottom:18px;">
@@ -1820,51 +1736,100 @@ function renderChecks() {
     </div>
     ${managed.map(([dutyId, d]) => {
       const members = Object.keys(d.memberIds || {});
-      const doneCount = members.filter(uid => (((cache.completions[pid] || {})[dutyId] || {})[uid] || {}).done).length;
-      return `
-      <div class="card">
-        <h2>
-          <span class="chip-color" style="background:${d.color};width:14px;height:14px;border-radius:5px;margin-right:4px;"></span>
-          ${esc(d.title)}
-          <span style="color:var(--text-dim);font-weight:600;font-size:12px;margin-left:auto;">${doneCount}/${members.length}</span>
-        </h2>
+      const doneCount = members.filter(uid => ((cache.completions[dutyId] || {})[uid] || {}).done).length;
+      return `<div class="card">
+        <h2><span class="chip-color" style="background:${d.color};width:14px;height:14px;border-radius:5px;margin-right:4px;"></span>${esc(d.title)}<span style="color:var(--text-dim);font-weight:600;font-size:12px;margin-left:auto;">${doneCount}/${members.length}</span></h2>
         ${members.length ? `<div style="display:flex;flex-direction:column;gap:8px;">
           ${members.map(uid => {
-            const c = (((cache.completions[pid] || {})[dutyId] || {})[uid]) || {};
-            return `<div style="display:flex;align-items:center;gap:12px;padding:10px 14px;border-radius:14px;background:${c.done ? 'var(--green-50)' : 'var(--bg-elev2)'};border:2px solid ${c.done ? 'var(--green-200)' : 'var(--border)'};">
-              <div style="font-size:22px;">${c.done ? '✅' : '⬜'}</div>
-              <div style="flex:1;">
-                <div style="font-weight:700;font-size:14px;">${esc(userName(uid))}</div>
-                <div style="font-size:11px;color:var(--text-dim);">${c.done ? `완료 · ${c.checkedAt ? new Date(c.checkedAt).toLocaleString('ko-KR',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'}) : ''}` : '미완료'}</div>
-              </div>
-              <button class="btn ${c.done ? 'ghost' : ''}" style="min-width:80px;" onclick="toggleCompletion('${dutyId}','${uid}',${!c.done})">
-                ${c.done ? '↩ 취소' : '완료 처리'}
-              </button>
+            const c = ((cache.completions[dutyId] || {})[uid]) || {};
+            return `<div style="display:flex;align-items:center;gap:12px;padding:10px 14px;border-radius:14px;background:${c.done?'var(--green-50)':'var(--bg-elev2)'};border:2px solid ${c.done?'var(--green-200)':'var(--border)'};">
+              <div style="font-size:22px;">${c.done?'✅':'⬜'}</div>
+              <div style="flex:1;"><div style="font-weight:700;font-size:14px;">${esc(userName(uid))}</div>
+              <div style="font-size:11px;color:var(--text-dim);">${c.done?'완료':'미완료'}</div></div>
+              <button class="btn ${c.done?'ghost':''}" style="min-width:80px;" onclick="toggleCompletion('${dutyId}','${uid}',${!c.done})">${c.done?'↩ 취소':'완료 처리'}</button>
             </div>`;
           }).join('')}
-        </div>` : `<div class="empty">이 1인1역에 배정된 멤버가 없어요</div>`}
+        </div>` : `<div class="empty">멤버가 없어요</div>`}
       </div>`;
-    }).join('')}
-  `;
-}
-function toggleCompletion(dutyId, uid, done) {
-  const pid = currentPeriodId();
-  db.ref(`completions/${pid}/${dutyId}/${uid}`).set({
-    done, checkedBy: currentUser.uid, checkedAt: Date.now()
-  }).then(() => toast(done ? '완료 처리했어' : '미완료로 변경했어'));
+    }).join('')}`;
 }
 
-/* ================= VOTE (O/X 실명 투표) ================= */
-let voteFilterText = '';
-let voteOnlyPending = false;
+function toggleCompletion(dutyId, uid, done) {
+  db.ref(`completions/${dutyId}/${uid}`).set(
+    done ? { done: true, checkedBy: currentUser.uid, checkedAt: Date.now() } : null
+  ).then(() => toast(done ? '완료 처리했어 🎉' : '미완료로 변경했어'));
+}
+
+/* ================= VOTE (통합 투표) ================= */
+function pollTally(pollId) {
+  const votes = cache.pollVotes[pollId] || {};
+  const vals = Object.values(votes);
+  const counts = {};
+  vals.forEach(v => { counts[v] = (counts[v] || 0) + 1; });
+  return { counts, total: vals.length };
+}
+
+function castPollVote(pollId, answer) {
+  db.ref(`pollVotes/${pollId}/${currentUser.uid}`).set(answer).then(() => toast('투표했어'));
+}
+
+function castPeerVote(evalId, targetUid, val) {
+  db.ref(`peerEvalVotes/${evalId}/${currentUser.uid}/${targetUid}`).set(val).then(() => toast('투표했어'));
+}
+
+function approvePoll(id) {
+  if (!isAdmin()) return;
+  db.ref(`polls/${id}/approved`).set(true).then(() => toast('승인했어'));
+}
+
+function approvePeerEval(id) {
+  if (!isAdmin()) return;
+  db.ref(`peerEvals/${id}/approved`).set(true).then(() => toast('동료평가 승인했어'));
+}
+
+function closePeerEval(id) {
+  if (!isAdmin()) return;
+  db.ref(`peerEvals/${id}/closed`).set(true).then(() => toast('마감했어'));
+}
+
+function deletePeerEval(id) {
+  if (!isAdmin()) return;
+  if (!confirm('이 동료평가를 삭제할까?')) return;
+  db.ref(`peerEvals/${id}`).remove()
+    .then(() => db.ref(`peerEvalVotes/${id}`).remove())
+    .then(() => toast('삭제했어'));
+}
+
+function openCreatePeerEvalModal() {
+  if (!isAdmin()) { toast('관리자만 동료평가를 만들 수 있어'); return; }
+  openModal(`
+    <h3>동료평가 만들기</h3>
+    <div class="field"><label>질문 / 제목</label><input id="mPeerQ" placeholder="예: 이번 달 역할 수행도를 평가해주세요"></div>
+    <div class="row" style="justify-content:flex-end;">
+      <button class="btn ghost" onclick="closeModal()">취소</button>
+      <button class="btn" onclick="submitCreatePeerEval()">만들고 바로 활성화</button>
+    </div>`);
+}
+
+function submitCreatePeerEval() {
+  if (!isAdmin()) { toast('권한 없어'); return; }
+  const q = document.getElementById('mPeerQ').value.trim();
+  if (!q) { toast('질문을 입력해줘'); return; }
+  const id = newKey('peerEvals');
+  db.ref('peerEvals/' + id).set({
+    question: q, createdBy: currentUser.uid, createdAt: Date.now(), approved: true, closed: false
+  }).then(() => { toast('동료평가를 만들었어'); closeModal(); });
+}
 
 function renderVote() {
-  const pid = currentPeriodId();
-
-  const activePolls = Object.entries(cache.polls || {}).filter(([id, p]) => !p.closed)
+  const activePolls = Object.entries(cache.polls || {})
+    .filter(([id, p]) => p.approved && !p.closed)
     .sort((a, b) => (b[1].createdAt || 0) - (a[1].createdAt || 0));
+  const pendingPolls = Object.entries(cache.polls || {}).filter(([id, p]) => !p.approved && !p.closed);
+  const activePeerEvals = Object.entries(cache.peerEvals || {}).filter(([id, p]) => p.approved && !p.closed);
+  const pendingPeerEvals = Object.entries(cache.peerEvals || {}).filter(([id, p]) => !p.approved && !p.closed);
 
-  const pollsHtml = activePolls.length ? activePolls.map(([pollId, p]) => {
+  const pollsHtml = activePolls.map(([pollId, p]) => {
     const votes = cache.pollVotes[pollId] || {};
     const myAnswer = votes[currentUser.uid];
     const tally = pollTally(pollId);
@@ -1877,15 +1842,15 @@ function renderVote() {
     } else {
       voteUi = `<div style="display:flex;flex-direction:column;gap:8px;">
         ${p.options.map((opt, i) => {
-          const optKey = String(i);
-          const sel = myAnswer === optKey;
-          const cnt = tally.counts[optKey] || 0;
-          const barPct = tally.total ? Math.round(cnt / tally.total * 100) : 0;
-          return `<button onclick="castPollVote('${pollId}','${optKey}')" style="text-align:left;padding:12px 14px;border-radius:14px;border:2px solid ${sel?'var(--green-600)':'var(--border)'};background:${sel?'var(--green-50)':'var(--bg-elev2)'};cursor:pointer;position:relative;overflow:hidden;">
-            <div style="position:absolute;inset:0;width:${barPct}%;background:${sel?'var(--green-100)':'var(--gray-soft)'};opacity:.5;"></div>
-            <div style="position:relative;display:flex;justify-content:space-between;align-items:center;">
-              <span style="font-weight:700;font-size:13.5px;">${i+1}. ${esc(opt)}</span>
-              <span style="font-size:12px;color:var(--text-dim);font-weight:600;">${cnt}표 (${barPct}%)</span>
+          const key = String(i);
+          const sel = myAnswer === key;
+          const cnt = tally.counts[key] || 0;
+          const pct = tally.total ? Math.round(cnt / tally.total * 100) : 0;
+          return `<button onclick="castPollVote('${pollId}','${key}')" style="text-align:left;padding:12px 14px;border-radius:14px;border:2px solid ${sel?'var(--green-600)':'var(--border)'};background:${sel?'var(--green-50)':'var(--bg-elev2)'};cursor:pointer;position:relative;overflow:hidden;">
+            <div style="position:absolute;inset:0;width:${pct}%;background:${sel?'var(--green-100)':'var(--gray-soft)'};opacity:.5;"></div>
+            <div style="position:relative;display:flex;justify-content:space-between;">
+              <span style="font-weight:700;">${i+1}. ${esc(opt)}</span>
+              <span style="font-size:12px;color:var(--text-dim);">${cnt}표 (${pct}%)</span>
             </div>
           </button>`;
         }).join('')}
@@ -1893,831 +1858,83 @@ function renderVote() {
     }
     return `<div class="card">
       <h2>📋 ${esc(p.question)} <span style="color:var(--text-dim);font-weight:600;font-size:12px;">· 총 ${tally.total}표</span></h2>
-      <div style="font-size:12px;color:var(--text-dim);margin-bottom:12px;">눌러서 투표해줘. 다시 누르면 바뀌어.</div>
+      <div style="font-size:12px;color:var(--text-dim);margin-bottom:10px;">작성자: ${esc(userName(p.createdBy))} · 눌러서 투표해줘</div>
       ${voteUi}
-    </div>`;
-  }).join('') : '';
-
-  const prog = pid ? voteProgress() : null;
-  const perfHtml = !pid ? `<div class="info-banner">⏳ 활성화된 평가 주기가 없어요. 설정에서 주기를 만들어야 해요.</div>` : `
-    <div class="info-banner">🗳️ <b>동료 평가</b> — O는 "이번 주기 잘했어요", X는 "조금 부족했어요". 솔직하게 눌러줘. 관리자는 누가 뭘 눌렀는지 볼 수 있어.</div>
-    <div class="card">
-      <h2>🗳️ ${esc(cache.periods[pid].label)} 동료 평가</h2>
-      ${prog ? `<div style="margin-bottom:14px;">
-        <div style="display:flex;justify-content:space-between;font-size:12px;font-weight:700;margin-bottom:6px;">
-          <span>내 투표 진행률</span>
-          <span style="color:${prog.done===prog.total?'var(--green-600)':'var(--text-dim)'};">${prog.done}/${prog.total}명 완료</span>
-        </div>
-        <div style="height:10px;border-radius:99px;background:var(--gray-soft);overflow:hidden;">
-          <div style="height:100%;width:${prog.total?Math.round(prog.done/prog.total*100):0}%;background:var(--green-500);transition:width .4s;"></div>
-        </div>
-        ${prog.done===prog.total?`<div style="margin-top:8px;font-weight:700;color:var(--green-600);">🎉 전원 투표 완료!</div>`:''}
+      ${isAdmin() ? `<div style="margin-top:12px;display:flex;gap:6px;">
+        <button class="btn ghost small" onclick="closePoll('${pollId}')">마감</button>
+        <button class="btn danger small" onclick="deletePoll('${pollId}')">삭제</button>
       </div>` : ''}
-      <div class="row" style="margin-bottom:14px;gap:8px;">
-        <input id="voteSearchInput" placeholder="🔍 이름으로 찾기..." value="${esc(voteFilterText)}" oninput="onVoteSearchInput()" style="flex:1;">
-        <button class="btn ${voteOnlyPending?'':'ghost'} small" onclick="toggleVoteOnlyPending()">
-          ${voteOnlyPending?'✅ 안 한 사람만':'전체 보기'}
-        </button>
-      </div>
-      <div id="voteGridContainer">${buildVoteGridHtml()}</div>
     </div>`;
+  }).join('');
 
-  document.getElementById('pageContent').innerHTML = pollsHtml + perfHtml;
-}
-function voteProgress() {
-  const pid = currentPeriodId();
-  const myVotes = cache.votes[pid] || {};
-  const others = Object.entries(cache.users || {}).filter(([uid]) => uid !== currentUser.uid);
-  const done = others.filter(([uid]) => (myVotes[uid] || {})[currentUser.uid]).length;
-  return { done, total: others.length };
-}
-function buildVoteGridHtml() {
-  const pid = currentPeriodId();
-  if (!pid) return '';
-  const myVotes = cache.votes[pid] || {};
-  let others = Object.entries(cache.users || {}).filter(([uid]) => uid !== currentUser.uid);
-  if (voteOnlyPending) others = others.filter(([uid]) => !((myVotes[uid] || {})[currentUser.uid]));
-  if (voteFilterText.trim()) {
-    const q = voteFilterText.trim().toLowerCase();
-    others = others.filter(([uid, u]) => u.name.toLowerCase().includes(q));
-  }
-  if (!others.length) return `<div class="empty">${voteFilterText || voteOnlyPending ? '조건에 맞는 사람이 없어' : '투표할 다른 멤버가 없어요'}</div>`;
-  return `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px;">
-    ${others.map(([uid, u]) => {
-      const my = (myVotes[uid] || {})[currentUser.uid];
-      return `<div style="border:2px solid ${my==='O'?'var(--green-500)':my==='X'?'var(--danger)':'var(--border)'};border-radius:18px;padding:14px 10px;background:${my==='O'?'var(--green-50)':my==='X'?'var(--danger-soft)':'var(--bg-elev2)'};text-align:center;">
-        <div style="font-weight:800;font-size:14px;margin-bottom:10px;">${esc(u.name)}</div>
-        <div style="display:flex;gap:6px;">
-          <button onclick="castVote('${uid}','O')" style="flex:1;padding:10px 0;border-radius:12px;font-size:18px;font-weight:900;border:2px solid ${my==='O'?'var(--green-600)':'var(--border)'};background:${my==='O'?'var(--green-600)':'var(--bg-elev)'};color:${my==='O'?'#fff':'var(--text)'};cursor:pointer;">O</button>
-          <button onclick="castVote('${uid}','X')" style="flex:1;padding:10px 0;border-radius:12px;font-size:18px;font-weight:900;border:2px solid ${my==='X'?'var(--danger)':'var(--border)'};background:${my==='X'?'var(--danger)':'var(--bg-elev)'};color:${my==='X'?'#fff':'var(--text)'};cursor:pointer;">X</button>
+  const peerHtml = activePeerEvals.map(([evalId, ev]) => {
+    const others = Object.entries(cache.users || {}).filter(([uid]) => uid !== currentUser.uid);
+    const myVotes = (cache.peerEvalVotes[evalId] || {})[currentUser.uid] || {};
+    const progress = others.filter(([uid]) => myVotes[uid]).length;
+    return `<div class="card">
+      <h2>🗳️ ${esc(ev.question)}</h2>
+      <div style="font-size:12px;color:var(--text-dim);margin-bottom:10px;">O는 잘했어요, X는 조금 부족했어요.</div>
+      <div style="margin-bottom:14px;">
+        <div style="display:flex;justify-content:space-between;font-size:12px;font-weight:700;margin-bottom:4px;">
+          <span>내 투표 진행</span><span>${progress}/${others.length}</span>
         </div>
-      </div>`;
-    }).join('')}
-  </div>`;
-}
-function onVoteSearchInput() {
-  voteFilterText = document.getElementById('voteSearchInput').value;
-  document.getElementById('voteGridContainer').innerHTML = buildVoteGridHtml();
-}
-function toggleVoteOnlyPending() {
-  voteOnlyPending = !voteOnlyPending;
-  renderPage('vote');
-}
-function pollTally(pollId) {
-  const votes = cache.pollVotes[pollId] || {};
-  const vals = Object.values(votes);
-  const counts = {};
-  vals.forEach(v => { counts[v] = (counts[v] || 0) + 1; });
-  return { counts, total: vals.length };
-}
-function castPollVote(pollId, answer) {
-  db.ref(`pollVotes/${pollId}/${currentUser.uid}`).set(answer).then(() => toast('투표했어'));
-}
-function castVote(targetUid, val) {
-  const pid = currentPeriodId();
-  db.ref(`votes/${pid}/${targetUid}/${currentUser.uid}`).set(val)
-    .then(() => { toast('투표했어'); recalcGrade(targetUid); });
-}
-function recalcGrade(targetUid) {
-  const pid = currentPeriodId();
-  const votesForUser = (cache.votes[pid] || {})[targetUid] || {};
-  const vals = Object.values(votesForUser);
-  const oCount = vals.filter(v => v === 'O').length;
-  const auto = computeAutoGrade(oCount, vals.length);
-  const existing = ((cache.grades[pid] || {})[targetUid]) || {};
-  if (existing.overridden) {
-    db.ref(`grades/${pid}/${targetUid}/autoGrade`).set(auto);
-  } else {
-    db.ref(`grades/${pid}/${targetUid}`).set({ autoGrade: auto, finalGrade: auto, overridden: false });
-  }
-}
-
-/* ================= GRADES (admin) ================= */
-let selectedGradePeriodId = null;
-function changeGradePeriod(pid) { selectedGradePeriodId = pid; renderPage('grades'); }
-
-function renderGrades() {
-  if (!isAdmin()) return renderNoAccess();
-  const allPeriods = Object.entries(cache.periods || {}).sort((a, b) => (b[1].createdAt || 0) - (a[1].createdAt || 0));
-  if (!allPeriods.length) {
-    document.getElementById('pageContent').innerHTML = `<div class="card"><div class="empty">활성화된 주기가 없어요. 설정에서 먼저 만들어줘.</div></div>`;
-    return;
-  }
-  if (!selectedGradePeriodId || !cache.periods[selectedGradePeriodId]) selectedGradePeriodId = currentPeriodId() || allPeriods[0][0];
-  const pid = selectedGradePeriodId;
-  const period = cache.periods[pid];
-  const users = Object.entries(cache.users || {});
-  document.getElementById('pageContent').innerHTML = `
-    <div class="card">
-      <h2>등급표 <span style="color:var(--text-dim);font-weight:600;font-size:12px;">${pid === currentPeriodId() ? '· 현재 주기' : '· 지난 주기'}</span></h2>
-      <div class="field" style="max-width:260px;">
-        <label>조회할 주기</label>
-        <select onchange="changeGradePeriod(this.value)">
-          ${allPeriods.map(([id, p]) => `<option value="${id}" ${id === pid ? 'selected' : ''}>${esc(p.label)}${id === currentPeriodId() ? ' (현재)' : ''}</option>`).join('')}
-        </select>
+        <div style="height:8px;border-radius:99px;background:var(--gray-soft);overflow:hidden;">
+          <div style="height:100%;width:${others.length?Math.round(progress/others.length*100):0}%;background:var(--green-500);"></div>
+        </div>
       </div>
-      <table>
-        <thead><tr><th>이름</th><th>O</th><th>X</th><th>비율</th><th>자동등급</th><th>최종등급</th><th></th></tr></thead>
-        <tbody>
-        ${users.map(([uid, u]) => {
-          const votesForUser = (cache.votes[pid] || {})[uid] || {};
-          const vals = Object.values(votesForUser);
-          const oCount = vals.filter(v => v === 'O').length;
-          const xCount = vals.length - oCount;
-          const ratio = vals.length ? Math.round((oCount / vals.length) * 100) : null;
-          const g = ((cache.grades[pid] || {})[uid]) || {};
-          const finalGrade = g.finalGrade || g.autoGrade;
-          return `<tr>
-            <td>${esc(u.name)}</td>
-            <td>${oCount}</td>
-            <td>${xCount}</td>
-            <td>${ratio !== null ? ratio + '%' : '-'}</td>
-            <td>${g.autoGrade ? `<span class="badge grade-${g.autoGrade}">${g.autoGrade}</span>` : '-'}</td>
-            <td>${finalGrade ? `<span class="badge grade-${finalGrade}">${finalGrade}</span>` : '<span class="badge grade-null">미평가</span>'}</td>
-            <td><button class="btn ghost small" onclick="openOverrideModal('${pid}','${uid}')">수정</button></td>
-          </tr>`;
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px;">
+        ${others.map(([uid, u]) => {
+          const my = myVotes[uid];
+          return `<div style="border:2px solid ${my==='O'?'var(--green-500)':my==='X'?'var(--danger)':'var(--border)'};border-radius:16px;padding:12px 10px;background:${my==='O'?'var(--green-50)':my==='X'?'var(--danger-soft)':'var(--bg-elev2)'};text-align:center;">
+            <div style="font-weight:800;font-size:13px;margin-bottom:8px;">${esc(u.name)}</div>
+            <div style="display:flex;gap:6px;">
+              <button onclick="castPeerVote('${evalId}','${uid}','O')" style="flex:1;padding:8px 0;border-radius:10px;font-size:16px;font-weight:900;border:2px solid ${my==='O'?'var(--green-600)':'var(--border)'};background:${my==='O'?'var(--green-600)':'var(--bg-elev)'};color:${my==='O'?'#fff':'var(--text)'};cursor:pointer;">O</button>
+              <button onclick="castPeerVote('${evalId}','${uid}','X')" style="flex:1;padding:8px 0;border-radius:10px;font-size:16px;font-weight:900;border:2px solid ${my==='X'?'var(--danger)':'var(--border)'};background:${my==='X'?'var(--danger)':'var(--bg-elev)'};color:${my==='X'?'#fff':'var(--text)'};cursor:pointer;">X</button>
+            </div>
+          </div>`;
         }).join('')}
-        </tbody>
-      </table>
+      </div>
+      ${isAdmin() ? `<div style="margin-top:12px;display:flex;gap:6px;">
+        <button class="btn ghost small" onclick="closePeerEval('${evalId}')">마감</button>
+        <button class="btn danger small" onclick="deletePeerEval('${evalId}')">삭제</button>
+      </div>` : ''}
     </div>`;
-}
-function openOverrideModal(pid, uid) {
-  openModal(`
-    <h3>${esc(userName(uid))} 등급 수동 지정</h3>
-    <select id="mGradeSel">
-      <option value="">자동값 사용</option>
-      <option value="A">A</option><option value="B">B</option><option value="C">C</option><option value="D">D</option>
-    </select>
-    <div class="row" style="justify-content:flex-end;margin-top:14px;">
-      <button class="btn ghost" onclick="closeModal()">취소</button>
-      <button class="btn" onclick="submitOverride('${pid}','${uid}')">저장</button>
-    </div>`);
-}
-function submitOverride(pid, uid) {
-if (!isAdmin()) { toast("권한 없어"); return; }
-    const val = document.getElementById('mGradeSel').value;
-  const g = ((cache.grades[pid] || {})[uid]) || {};
-  if (val) {
-    db.ref(`grades/${pid}/${uid}`).set({ autoGrade: g.autoGrade || null, finalGrade: val, overridden: true })
-      .then(() => { toast('등급을 수정했어'); closeModal(); });
-  } else {
-    db.ref(`grades/${pid}/${uid}`).set({ autoGrade: g.autoGrade || null, finalGrade: g.autoGrade || null, overridden: false })
-      .then(() => { toast('자동값으로 되돌렸어'); closeModal(); });
-  }
-}
+  }).join('');
 
-/* ================= COMPLAINTS ================= */
-function renderComplaints() {
-  document.getElementById('topbarActions').innerHTML = `<button class="btn" onclick="openSubmitComplaintModal()">+ 민원 제기</button>`;
-  const list = Object.entries(cache.complaints || {}).sort((a, b) => (b[1].createdAt || 0) - (a[1].createdAt || 0));
-  const limit = 8;
-  const expanded = expandedLists['complaints-list'];
-  const shownList = expanded ? list : list.slice(0, limit);
-  const remaining = list.length - limit;
-  document.getElementById('pageContent').innerHTML = `
-    <div class="info-banner">💬 부당한 대우나 문제 사항을 민원으로 제기할 수 있어. "+ 민원 제기" 버튼을 눌러봐. 관리자만 해결 처리할 수 있어.</div>
+  const approvalHtml = isAdmin() && (pendingPolls.length || pendingPeerEvals.length) ? `
     <div class="card">
-      ${shownList.length ? shownList.map(([id, c]) => `
-        <div class="list-item" style="align-items:flex-start;">
-          <span class="ldot" style="background:${c.status==='pending'?'var(--warn)':'var(--green-500)'};margin-top:5px;"></span>
-          <div style="flex:1;">
-            <div style="font-weight:700;font-size:13.5px;">${esc(c.title)}</div>
-            <div style="font-size:11.5px;color:var(--text-dim);margin-top:2px;">
-              ${esc(userName(c.submittedBy))} 제출${c.targetUid ? ` · 대상: ${esc(userName(c.targetUid))}` : ''} · ${c.createdAt ? new Date(c.createdAt).toLocaleDateString('ko-KR') : ''}
-            </div>
-          </div>
-          <span class="badge ${c.status==='pending'?'pending':'resolved'}">${c.status==='pending'?'대기중':'해결됨'}</span>
-          ${isAdmin() && c.status==='pending' ? `<button class="btn small" onclick="resolveComplaint('${id}')">해결처리</button>` : ''}
-        </div>`).join('') : `<div class="empty">민원이 없어요</div>`}
-      ${!expanded && remaining > 0 ? `<button class="btn ghost small" style="margin-top:10px;" onclick="toggleExpand('complaints-list')">더보기 (+${remaining})</button>` : ''}
-      ${expanded && list.length > limit ? `<button class="btn ghost small" style="margin-top:10px;" onclick="toggleExpand('complaints-list')">접기</button>` : ''}
-    </div>`;
-}
-function openSubmitComplaintModal() {
-  const users = Object.entries(cache.users || {});
-  openModal(`
-    <h3>민원 제기</h3>
-    <div class="field"><label>대상자 (선택)</label>
-      <select id="mCplTarget"><option value="">없음</option>${users.map(([uid, u]) => `<option value="${uid}">${esc(u.name)}</option>`).join('')}</select>
-    </div>
-    <div class="field"><label>제목</label><input id="mCplTitle" placeholder="제목"></div>
-    <div class="field"><label>내용</label><textarea id="mCplContent" rows="4" placeholder="내용을 적어줘"></textarea></div>
-    <div class="row" style="justify-content:flex-end;">
-      <button class="btn ghost" onclick="closeModal()">취소</button>
-      <button class="btn" onclick="submitComplaint()">제출</button>
-    </div>`);
-}
-function submitComplaint() {
-  const targetUid = document.getElementById('mCplTarget').value || null;
-  const title = document.getElementById('mCplTitle').value.trim();
-  const content = document.getElementById('mCplContent').value.trim();
-  if (!title || !content) { toast('제목과 내용을 입력해줘'); return; }
-  const id = newKey('complaints');
-  db.ref('complaints/' + id).set({
-    title, content, targetUid, submittedBy: currentUser.uid,
-    status: 'pending', createdAt: Date.now()
-  }).then(() => { toast('민원을 제출했어'); closeModal(); });
-}
-function resolveComplaint(id) {
-if (!isAdmin()) { toast("권한 없어"); return; }
-    db.ref('complaints/' + id).update({ status: 'resolved', resolvedAt: Date.now(), resolvedBy: currentUser.uid })
-    .then(() => toast('해결처리 했어'));
-}
-
-/* ================= SETTINGS (admin: 주기 + 민원 카테고리) ================= */
-/* ================= ME (내 정보 / 비밀번호 변경) ================= */
-/* ================= MY DUTIES (내 1인1역) ================= */
-function renderMyDuties() {
-  const myDuties = Object.entries(cache.duties || {}).filter(([id, d]) => d.memberIds && d.memberIds[currentUser.uid]);
-  const pid = currentPeriodId();
-  const pastPeriods = Object.entries(cache.periods || {}).sort((a, b) => (b[1].createdAt || 0) - (a[1].createdAt || 0)).slice(0, 6);
-
-  document.getElementById('pageContent').innerHTML = `
-    <div class="info-banner">🎯 내가 맡은 1인1역이야. 이번 주기 완료 상태를 확인할 수 있어. 역할을 더 맡고 싶으면 <button class="btn small" style="padding:3px 8px;font-size:11px;vertical-align:middle;" onclick="renderPage('apply')">1인1역 신청</button>을 눌러봐.</div>
-    ${myDuties.length ? myDuties.map(([dutyId, d]) => {
-      const curDone = pid ? !!(((cache.completions[pid] || {})[dutyId] || {})[currentUser.uid] || {}).done : null;
-      return `
-      <div class="card" style="border-left:4px solid ${d.color};">
-        <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
-          <div style="font-size:26px;">${curDone ? '✅' : '⏳'}</div>
-          <div style="flex:1;">
-            <div style="font-weight:800;font-size:15px;">${esc(d.title)}</div>
-            <div style="font-size:12px;color:var(--text-dim);">이번 주기 · ${curDone ? '완료됨' : pid ? '아직 완료 전이야' : '주기 없음'}</div>
-          </div>
-          ${pid ? `<span class="badge ${curDone ? 'resolved' : 'grade-C'}">${curDone ? '완료' : '대기중'}</span>` : ''}
-        </div>
-        ${pastPeriods.length > 1 ? `
-        <div style="font-size:11px;color:var(--text-dim);margin-bottom:6px;font-weight:600;">지난 기록</div>
-        <div style="display:flex;flex-wrap:wrap;gap:5px;">
-          ${pastPeriods.map(([pId, p]) => {
-            const done = !!(((cache.completions[pId] || {})[dutyId] || {})[currentUser.uid] || {}).done;
-            return `<span style="padding:3px 8px;border-radius:99px;font-size:11px;font-weight:700;background:${done?'var(--green-100)':'var(--gray-soft)'};color:${done?'var(--green-700)':'var(--gray-text)'};">${esc(p.label.slice(-4))} ${done?'✓':'·'}</span>`;
-          }).join('')}
-        </div>` : ''}
-      </div>`;
-    }).join('') : `
-    <div class="card" style="text-align:center;padding:40px 20px;">
-      <div style="font-size:40px;margin-bottom:12px;">🌱</div>
-      <div style="font-weight:800;font-size:16px;margin-bottom:8px;">아직 맡은 1인1역이 없어요</div>
-      <div style="font-size:13px;color:var(--text-dim);margin-bottom:18px;">1인1역을 신청하면 동료 투표를 거쳐 배정받을 수 있어요.</div>
-      <button class="btn" onclick="renderPage('apply')">1인1역 신청하러 가기</button>
-    </div>`}
-  `;
-}
-
-/* ================= ROSTER (멤버 현황판, 전체 열람 가능) ================= */
-/* ================= NOTICES (공지사항) ================= */
-function markAllNoticesRead() {
-  const ids = Object.keys(cache.notices || {});
-  localStorage.setItem('readNotices', JSON.stringify(ids));
-  buildNav();
-}
-function markNoticeRead(id) {
-  const read = JSON.parse(localStorage.getItem('readNotices') || '[]');
-  if (!read.includes(id)) { read.push(id); localStorage.setItem('readNotices', JSON.stringify(read)); buildNav(); }
-}
-function pinNotice(id, pinned) {
-  if (!isAdmin()) return;
-  db.ref(`notices/${id}/pinned`).set(!pinned);
-}
-function deleteNotice(id) {
-  if (!isAdmin()) { toast('권한 없어'); return; }
-  if (!confirm('이 공지를 삭제할까?')) return;
-  db.ref('notices/' + id).remove().then(() => toast('삭제했어'));
-}
-function openCreateNoticeModal() {
-  if (!isAdmin()) { toast('권한 없어'); return; }
-  openModal(`
-    <h3>공지 작성</h3>
-    <div class="field"><label>제목</label><input id="mNoticeTitle" placeholder="공지 제목"></div>
-    <div class="field"><label>내용</label><textarea id="mNoticeContent" rows="5" placeholder="공지 내용을 써줘"></textarea></div>
-    <div class="row" style="justify-content:flex-end;">
-      <button class="btn ghost" onclick="closeModal()">취소</button>
-      <button class="btn" onclick="submitCreateNotice()">올리기</button>
-    </div>`);
-}
-function submitCreateNotice() {
-  if (!isAdmin()) { toast('권한 없어'); closeModal(); return; }
-  const title = document.getElementById('mNoticeTitle').value.trim();
-  const content = document.getElementById('mNoticeContent').value.trim();
-  if (!title || !content) { toast('제목과 내용을 모두 입력해줘'); return; }
-  const id = newKey('notices');
-  db.ref('notices/' + id).set({ title, content, createdBy: currentUser.uid, createdAt: Date.now(), pinned: false })
-    .then(() => { toast('공지를 올렸어'); closeModal(); markNoticeRead(id); });
-}
-
-function renderNotices() {
-  if (isAdmin()) {
-    document.getElementById('topbarActions').innerHTML = `<button class="btn" onclick="openCreateNoticeModal()">+ 공지 작성</button>`;
-  }
-  const list = Object.entries(cache.notices || {}).sort((a, b) => {
-    if (b[1].pinned !== a[1].pinned) return b[1].pinned ? 1 : -1;
-    return (b[1].createdAt || 0) - (a[1].createdAt || 0);
-  });
-  const readNotices = JSON.parse(localStorage.getItem('readNotices') || '[]');
-  if (list.length) setTimeout(() => markAllNoticesRead(), 800);
-  document.getElementById('pageContent').innerHTML = `
-    <div class="info-banner">📢 전체에게 공지되는 게시판이야. 읽으면 자동으로 읽음 처리돼.</div>
-    ${list.length ? list.map(([id, n]) => {
-      const isRead = readNotices.includes(id);
-      return `<div class="card" style="border-left:4px solid ${n.pinned ? 'var(--green-500)' : 'var(--border)'};">
-        <div style="display:flex;align-items:flex-start;gap:10px;">
-          <div style="flex:1;">
-            <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
-              ${n.pinned ? `<span style="font-size:13px;">📌</span>` : ''}
-              <span style="font-weight:800;font-size:15px;">${esc(n.title)}</span>
-              ${!isRead ? `<span class="badge" style="background:var(--danger);color:#fff;">new</span>` : ''}
-            </div>
-            <div style="font-size:13.5px;color:var(--text);line-height:1.7;white-space:pre-wrap;">${esc(n.content)}</div>
-            <div style="font-size:11px;color:var(--text-dim);margin-top:8px;">${esc(userName(n.createdBy))} · ${n.createdAt ? new Date(n.createdAt).toLocaleString('ko-KR', {month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'}) : ''}</div>
-          </div>
-          ${isAdmin() ? `<div style="display:flex;gap:6px;flex-shrink:0;">
-            <button class="btn ghost small" onclick="pinNotice('${id}', ${n.pinned})">${n.pinned ? '고정 해제' : '고정'}</button>
-            <button class="btn danger small" onclick="deleteNotice('${id}')">삭제</button>
-          </div>` : ''}
-        </div>
-      </div>`;
-    }).join('') : `
-    <div class="card" style="text-align:center;padding:40px 20px;">
-      <div style="font-size:36px;margin-bottom:12px;">📢</div>
-      <div style="font-weight:800;font-size:15px;margin-bottom:6px;">아직 공지가 없어요</div>
-      ${isAdmin() ? `<div style="color:var(--text-dim);font-size:13px;margin-bottom:16px;">위 버튼으로 첫 공지를 올려봐</div>` : `<div style="color:var(--text-dim);font-size:13px;">관리자가 공지를 올리면 여기에 표시돼요</div>`}
-    </div>`}
-  `;
-}
-
-/* ================= MEMOS (관리자 → 멤버 메모/알림) ================= */
-function sendMemo(toUid, message) {
-  const id = newKey('memos');
-  db.ref('memos/' + id).set({
-    toUid, message, sentBy: currentUser.uid, sentAt: Date.now(), read: false
-  }).then(() => toast('메모를 보냈어'));
-}
-function markMemoRead(id) {
-  db.ref('memos/' + id + '/read').set(true);
-}
-function deleteMemo(id) {
-if (!isAdmin()) { toast("권한 없어"); return; }
-    if (!confirm('이 메모를 삭제할까?')) return;
-  db.ref('memos/' + id).remove().then(() => toast('삭제했어'));
-}
-function openSendMemoModal() {
-  const users = Object.entries(cache.users || {});
-  openModal(`
-    <h3>메모 보내기</h3>
-    <div class="field"><label>받는 사람</label>
-      <select id="mMemoTo">${users.map(([uid, u]) => `<option value="${uid}">${esc(u.name)}</option>`).join('')}</select>
-    </div>
-    <div class="field"><label>내용</label><textarea id="mMemoText" rows="4" placeholder="예: 오늘 칠판 관리 잘 챙겨줘서 고마워 / 이번 주 청소 늦었어, 주의해줘"></textarea></div>
-    <div class="row" style="justify-content:flex-end;">
-      <button class="btn ghost" onclick="closeModal()">취소</button>
-      <button class="btn" onclick="submitSendMemo()">보내기</button>
-    </div>`);
-}
-function submitSendMemo() {
-if (!isAdmin()) { toast("권한 없어"); return; }
-    const toUid = document.getElementById('mMemoTo').value;
-  const text = document.getElementById('mMemoText').value.trim();
-  if (!text) { toast('내용을 입력해줘'); return; }
-  sendMemo(toUid, text);
-  closeModal();
-}
-
-function renderMemos() {
-  const myMemos = Object.entries(cache.memos || {}).filter(([id, m]) => m.toUid === currentUser.uid)
-    .sort((a, b) => (b[1].sentAt || 0) - (a[1].sentAt || 0));
-  // 열어보면 안읽음 자동으로 읽음 처리
-  myMemos.forEach(([id, m]) => { if (!m.read) markMemoRead(id); });
-
-  const sentByMe = isAdmin() ? Object.entries(cache.memos || {}).filter(([id, m]) => m.sentBy === currentUser.uid)
-    .sort((a, b) => (b[1].sentAt || 0) - (a[1].sentAt || 0)) : [];
-
-  document.getElementById('pageContent').innerHTML = `
-    ${isAdmin() ? `<div class="card">
-      <h2>메모 보내기</h2>
-      <button class="btn" onclick="openSendMemoModal()">+ 메모 작성</button>
-    </div>` : ''}
-    <div class="card">
-      <h2>받은 메모 ${myMemos.length ? `<span style="color:var(--text-dim);font-weight:600;font-size:12px;">${myMemos.length}건</span>` : ''}</h2>
-      ${myMemos.length ? renderExpandable('my-memos', myMemos.map(([id, m]) => `
-        <div class="list-item" style="align-items:flex-start;">
-          <span class="ldot" style="background:var(--indigo-b); margin-top:5px;"></span>
-          <span class="lname" style="font-weight:600;">
-            <div>${esc(m.message)}</div>
-            <div class="ntime" style="color:var(--text-dim); font-weight:400; font-size:11px; margin-top:3px;">${esc(userName(m.sentBy))} · ${m.sentAt ? new Date(m.sentAt).toLocaleString('ko-KR') : ''}</div>
-          </span>
-        </div>`), 5) : `<div class="empty">받은 메모가 없어요</div>`}
-    </div>
-    ${isAdmin() ? `<div class="card">
-      <h2>내가 보낸 메모</h2>
-      ${sentByMe.length ? sentByMe.map(([id, m]) => `
+      <h2>📥 승인 대기 <span style="color:var(--text-dim);font-weight:600;font-size:12px;">· ${pendingPolls.length + pendingPeerEvals.length}건</span></h2>
+      ${[...pendingPolls.map(([id,p])=>({id,p,type:'poll'})),...pendingPeerEvals.map(([id,p])=>({id,p,type:'peer'}))].map(({id,p,type})=>`
         <div class="list-item">
-          <span class="ldot" style="background:${m.read ? 'var(--green-500)' : 'var(--gray-text)'}"></span>
-          <span class="lname">${esc(userName(m.toUid))} <span style="color:var(--text-dim);font-weight:400;font-size:11.5px;">· ${esc(m.message)}</span></span>
-          <span class="badge ${m.read ? 'resolved' : 'pending'}">${m.read ? '읽음' : '안읽음'}</span>
-          <button class="btn ghost small" onclick="deleteMemo('${id}')">삭제</button>
-        </div>`).join('') : `<div class="empty">보낸 메모가 없어요</div>`}
-    </div>` : ''}
-  `;
-}
-
-/* ================= GROUPS (모둠 정하기) ================= */
-function shuffle(arr) {
-  const a = arr.slice();
-  for (let i = a.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [a[i], a[j]] = [a[j], a[i]];
-  }
-  return a;
-}
-function openCreateGroupSetModal() {
-  openModal(`
-    <h3>모둠 만들기</h3>
-    <div class="field"><label>제목</label><input id="mGroupTitle" placeholder="예: 체육대회 모둠"></div>
-    <div class="field"><label>모둠 개수</label><input id="mGroupCount" type="number" min="2" max="20" value="4"></div>
-    <div class="err-msg" id="mGroupErr"></div>
-    <div class="row" style="justify-content:flex-end;">
-      <button class="btn ghost" onclick="closeModal()">취소</button>
-      <button class="btn" onclick="submitCreateGroupSet()">만들고 자동배정</button>
-    </div>`);
-}
-function submitCreateGroupSet() {
-if (!isAdmin()) { toast("권한 없어"); return; }
-    const title = document.getElementById('mGroupTitle').value.trim();
-  const count = Number(document.getElementById('mGroupCount').value);
-  const errEl = document.getElementById('mGroupErr');
-  if (!title) { errEl.textContent = '제목을 입력해줘'; return; }
-  if (!count || count < 2 || count > 20) { errEl.textContent = '모둠 개수는 2~20 사이로 해줘'; return; }
-  const groups = {};
-  for (let i = 1; i <= count; i++) groups[String(i)] = { name: `${i}모둠`, memberIds: {} };
-  const shuffled = shuffle(Object.keys(cache.users || {}));
-  shuffled.forEach((uid, idx) => {
-    const gid = String((idx % count) + 1);
-    groups[gid].memberIds[uid] = true;
-  });
-  const id = newKey('groupSets');
-  db.ref('groupSets/' + id).set({ title, createdAt: Date.now(), createdBy: currentUser.uid, groups })
-    .then(() => { toast('모둠을 만들고 자동배정했어'); closeModal(); });
-}
-function shuffleGroupSet(setId) {
-if (!isAdmin()) { toast("권한 없어"); return; }
-    const set = cache.groupSets[setId];
-  if (!set) return;
-  const groupIds = Object.keys(set.groups || {});
-  if (!groupIds.length) return;
-  const shuffled = shuffle(Object.keys(cache.users || {}));
-  const newGroups = {};
-  groupIds.forEach(gid => { newGroups[gid] = { name: set.groups[gid].name, memberIds: {} }; });
-  shuffled.forEach((uid, idx) => {
-    const gid = groupIds[idx % groupIds.length];
-    newGroups[gid].memberIds[uid] = true;
-  });
-  db.ref(`groupSets/${setId}/groups`).set(newGroups).then(() => toast('다시 섞었어'));
-}
-function moveMemberToGroup(setId, uid, targetGroupId) {
-  const set = cache.groupSets[setId];
-  if (!set) return;
-  const updates = {};
-  Object.keys(set.groups || {}).forEach(gid => {
-    updates[`groupSets/${setId}/groups/${gid}/memberIds/${uid}`] = (gid === targetGroupId) ? true : null;
-  });
-  db.ref().update(updates).then(() => toast('모둠을 옮겼어'));
-}
-function deleteGroupSet(setId) {
-if (!isAdmin()) { toast("권한 없어"); return; }
-    if (!confirm('이 모둠 편성을 삭제할까?')) return;
-  db.ref('groupSets/' + setId).remove().then(() => toast('삭제했어'));
-}
-
-function renderGroups() {
-  const sets = Object.entries(cache.groupSets || {}).sort((a, b) => (b[1].createdAt || 0) - (a[1].createdAt || 0));
-  document.getElementById('pageContent').innerHTML = `
-    ${isAdmin() ? `<div class="card">
-      <h2>모둠 만들기</h2>
-      <button class="btn" onclick="openCreateGroupSetModal()">+ 새 모둠 편성</button>
-    </div>` : ''}
-    ${sets.length ? sets.map(([setId, set]) => `
-      <div class="card">
-        <h2>${esc(set.title)}
-          ${isAdmin() ? `<span style="margin-left:auto; display:flex; gap:6px;">
-            <button class="btn ghost small" onclick="shuffleGroupSet('${setId}')">다시 섞기</button>
-            <button class="btn danger small" onclick="deleteGroupSet('${setId}')">삭제</button>
-          </span>` : ''}
-        </h2>
-        <div class="grid3">
-          ${Object.entries(set.groups || {}).map(([gid, g]) => {
-            const members = Object.keys(g.memberIds || {});
-            const iAmIn = members.includes(currentUser.uid);
-            return `<div style="border:1px solid var(--border); border-radius:14px; padding:12px; ${iAmIn ? 'background:var(--green-50);' : ''}">
-              <div style="font-weight:800; font-size:13px; margin-bottom:8px;">${esc(g.name)} ${iAmIn ? '· 내 모둠' : ''}</div>
-              ${members.length ? members.map(uid => `
-                <div style="display:flex; align-items:center; gap:6px; margin-bottom:5px; font-size:12.5px;">
-                  <span style="flex:1;">${esc(userName(uid))}</span>
-                  ${isAdmin() ? `<select style="width:auto; padding:3px 6px; font-size:11px;" onchange="moveMemberToGroup('${setId}','${uid}', this.value)">
-                    ${Object.entries(set.groups).map(([gid2, g2]) => `<option value="${gid2}" ${gid2 === gid ? 'selected' : ''}>${esc(g2.name)}</option>`).join('')}
-                  </select>` : ''}
-                </div>`).join('') : `<div style="color:var(--text-dim); font-size:12px;">멤버 없음</div>`}
-            </div>`;
-          }).join('')}
-        </div>
-      </div>
-    `).join('') : `<div class="card"><div class="empty">아직 만들어진 모둠이 없어요</div></div>`}
-  `;
-}
-
-/* ================= MEETINGS (회의) ================= */
-let openMeetingId = null;
-function setOpenMeeting(id) { openMeetingId = id; subscribeMeetingMessages(id); renderPage('meetings'); }
-function backToMeetingList() { openMeetingId = null; subscribeMeetingMessages(null); renderPage('meetings'); }
-
-function openCreateMeetingModal() {
-  const users = Object.entries(cache.users || {});
-  openModal(`
-    <h3>회의 만들기</h3>
-    <div class="field"><label>회의 이름</label><input id="mMeetTitle" placeholder="예: 3월 정기회의"></div>
-    <div class="field"><label>참가자 (2명 이상)</label>
-      <div style="max-height:160px; overflow-y:auto; border:1px solid var(--border); border-radius:10px; padding:8px;">
-        ${users.map(([uid, u]) => `<label style="display:flex; align-items:center; gap:6px; padding:4px 0; font-size:13px;">
-          <input type="checkbox" class="mMeetParticipant" value="${uid}" style="width:auto;"> ${esc(u.name)}
-        </label>`).join('')}
-      </div>
-    </div>
-    <div class="field"><label>사회자 정하는 방식</label>
-      <select id="mMeetMode">
-        <option value="admin">관리자가 직접 지정</option>
-        <option value="vote">참가자 투표로 선출</option>
-      </select>
-    </div>
-    <div class="err-msg" id="mMeetErr"></div>
-    <div class="row" style="justify-content:flex-end;">
-      <button class="btn ghost" onclick="closeModal()">취소</button>
-      <button class="btn" onclick="submitCreateMeeting()">만들기</button>
-    </div>`);
-}
-function submitCreateMeeting() {
-if (!isAdmin()) { toast("권한 없어"); return; }
-    const title = document.getElementById('mMeetTitle').value.trim();
-  const mode = document.getElementById('mMeetMode').value;
-  const checked = Array.from(document.querySelectorAll('.mMeetParticipant:checked')).map(el => el.value);
-  const errEl = document.getElementById('mMeetErr');
-  if (!title) { errEl.textContent = '회의 이름을 입력해줘'; return; }
-  if (checked.length < 2) { errEl.textContent = '참가자를 2명 이상 선택해줘'; return; }
-  const participantIds = {};
-  checked.forEach(uid => { participantIds[uid] = true; });
-  const id = newKey('meetings');
-  db.ref('meetings/' + id).set({
-    title, participantIds, moderatorMode: mode, moderatorUid: null, status: 'setup',
-    conclusion: null, createdAt: Date.now(), createdBy: currentUser.uid
-  }).then(() => { toast('회의를 만들었어'); closeModal(); setOpenMeeting(id); });
-}
-function deleteMeeting(meetingId) {
-if (!isAdmin()) { toast("권한 없어"); return; }
-    if (!confirm('이 회의를 삭제할까? 대화 내용도 같이 삭제돼.')) return;
-  db.ref('meetings/' + meetingId).remove()
-    .then(() => db.ref('meetingMessages/' + meetingId).remove())
-    .then(() => db.ref('meetingModeratorVotes/' + meetingId).remove())
-    .then(() => { toast('삭제했어'); if (openMeetingId === meetingId) openMeetingId = null; renderPage('meetings'); });
-}
-
-function renderMeetings() {
-  if (openMeetingId && !cache.meetings[openMeetingId]) openMeetingId = null;
-  if (openMeetingId) return renderMeetingDetail(openMeetingId);
-  renderMeetingList();
-}
-
-function renderMeetingList() {
-  const all = Object.entries(cache.meetings || {}).sort((a, b) => (b[1].createdAt || 0) - (a[1].createdAt || 0));
-  const mine = isAdmin() ? all : all.filter(([id, m]) => m.participantIds && m.participantIds[currentUser.uid]);
-  document.getElementById('pageContent').innerHTML = `
-    ${isAdmin() ? `<div class="card"><h2>회의 만들기</h2><button class="btn" onclick="openCreateMeetingModal()">+ 새 회의</button></div>` : ''}
-    <div class="card">
-      <h2>회의 목록</h2>
-      ${mine.length ? renderExpandable('meeting-list', mine.map(([id, m]) => {
-        const statusLabel = m.status === 'setup' ? '준비중' : m.status === 'active' ? '진행중' : '종료';
-        const statusClass = m.status === 'setup' ? 'pending' : m.status === 'active' ? 'resolved' : 'grade-null';
-        return `<div class="list-item">
-          <span class="ldot" style="background:${m.status === 'active' ? 'var(--green-500)' : m.status === 'ended' ? 'var(--gray-text)' : 'var(--warn)'}"></span>
-          <span class="lname">${esc(m.title)} <span style="color:var(--text-dim);font-weight:400;font-size:11.5px;">· 참가자 ${Object.keys(m.participantIds || {}).length}명</span></span>
-          <span class="badge ${statusClass}">${statusLabel}</span>
-          <button class="btn ghost small" onclick="setOpenMeeting('${id}')">입장</button>
-          ${isAdmin() ? `<button class="btn danger small" onclick="deleteMeeting('${id}')">삭제</button>` : ''}
-        </div>`;
-      }), 6) : `<div class="empty">참여중인 회의가 없어요</div>`}
-    </div>`;
-}
-
-function renderMeetingDetail(meetingId) {
-  const m = cache.meetings[meetingId];
-  if (!m) { backToMeetingList(); return; }
-  const isParticipant = m.participantIds && m.participantIds[currentUser.uid];
-  const isModerator = m.moderatorUid === currentUser.uid;
-  const participants = Object.keys(m.participantIds || {});
-
-  let setupHtml = '';
-  if (m.status === 'setup') {
-    if (m.moderatorMode === 'admin') {
-      setupHtml = `<div class="card">
-        <h2>사회자 지정</h2>
-        ${isAdmin() ? `
-          <div class="field"><label>사회자 선택</label>
-            <select id="mModeratorSelect">${participants.map(uid => `<option value="${uid}">${esc(userName(uid))}</option>`).join('')}</select>
-          </div>
-          <button class="btn" onclick="assignModeratorDirect('${meetingId}', document.getElementById('mModeratorSelect').value)">사회자 지정하고 회의 시작</button>
-        ` : `<div class="empty">관리자가 사회자를 지정하면 회의가 시작돼요</div>`}
-      </div>`;
-    } else {
-      const votes = cache.meetingModeratorVotes[meetingId] || {};
-      const myVote = votes[currentUser.uid];
-      const tally = {};
-      Object.values(votes).forEach(c => { tally[c] = (tally[c] || 0) + 1; });
-      setupHtml = `<div class="card">
-        <h2>사회자 투표</h2>
-        <div style="font-size:12px;color:var(--text-dim);margin-bottom:10px;">참가자 중 사회자를 맡을 사람에게 투표해줘.</div>
-        ${isParticipant ? `<div style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:12px;">
-          ${participants.map(uid => `<button class="btn ${myVote === uid ? '' : 'ghost'} small" onclick="castModeratorVote('${meetingId}','${uid}')">${esc(userName(uid))} (${tally[uid] || 0}표)</button>`).join('')}
-        </div>` : ''}
-        ${isAdmin() ? `<button class="btn small" onclick="finalizeModeratorVote('${meetingId}')">투표 마감하고 확정</button>` : `<div style="font-size:12px;color:var(--text-dim);">관리자가 투표를 마감하면 회의가 시작돼요</div>`}
-      </div>`;
-    }
-  }
-
-  const messages = Object.entries(cache.meetingMessages[meetingId] || {}).sort((a, b) => (a[1].createdAt || 0) - (b[1].createdAt || 0));
-
-  const chatHtml = (m.status === 'active' || m.status === 'ended') ? `
-    <div class="card">
-      <h2>💬 채팅 ${m.moderatorUid ? `<span style="color:var(--text-dim);font-weight:600;font-size:12px;">· 사회자: ${esc(userName(m.moderatorUid))}</span>` : ''}</h2>
-      ${m.conclusion ? `<div class="chat-system conclude" style="margin-bottom:10px;">✅ 결론: ${esc(m.conclusion.text)}</div>` : ''}
-      <div class="chat-wrap" id="chatWrap">
-        ${messages.length ? messages.map(([msgId, msg]) => renderChatMessage(meetingId, msgId, msg)).join('') : `<div class="empty">아직 메시지가 없어요</div>`}
-      </div>
-      ${m.status === 'active' && isParticipant ? `
-        ${isModerator ? `<div style="font-size:11px;color:var(--text-dim);margin-bottom:6px;">사회자 명령어: @결론 내용 · @공지 내용 · @투표 질문 · @지목 이름 · @종료</div>` : ''}
-        <div class="row">
-          <input id="meetingChatInput" placeholder="메시지 입력..." onkeydown="if(event.key==='Enter'){ sendMeetingMessage('${meetingId}'); }" style="flex:1;">
-          <button class="btn" onclick="sendMeetingMessage('${meetingId}')">전송</button>
-        </div>` : m.status === 'ended' ? `<div class="empty">회의가 종료됐어요</div>` : `<div class="empty">참가자만 채팅할 수 있어요</div>`}
+          <span class="ldot" style="background:var(--indigo-a)"></span>
+          <span class="lname">${esc(p.question)} <span style="color:var(--text-dim);font-size:11px;">· ${type==='peer'?'동료평가':p.type==='ox'?'O/X':'객관식'} · ${esc(userName(p.createdBy))}</span></span>
+          <button class="btn small" onclick="${type==='peer'?'approvePeerEval':'approvePoll'}('${id}')">승인</button>
+          <button class="btn danger small" onclick="${type==='peer'?'deletePeerEval':'deletePoll'}('${id}')">거절</button>
+        </div>`).join('')}
     </div>` : '';
 
   document.getElementById('pageContent').innerHTML = `
-    <button class="btn ghost small" style="margin-bottom:12px;" onclick="backToMeetingList()">← 회의 목록</button>
+    <div class="info-banner">📊 투표에 참여하거나 새 투표를 만들 수 있어. 관리자 승인 후 전체에 공개돼.</div>
     <div class="card">
-      <h2>${esc(m.title)} <span class="badge ${m.status === 'active' ? 'resolved' : m.status === 'ended' ? 'grade-null' : 'pending'}" style="margin-left:auto;">${m.status === 'setup' ? '준비중' : m.status === 'active' ? '진행중' : '종료'}</span></h2>
-      <div style="font-size:12px;color:var(--text-dim);">참가자: ${participants.map(uid => esc(userName(uid))).join(', ')}</div>
-    </div>
-    ${setupHtml}
-    ${chatHtml}
-  `;
-  const wrap = document.getElementById('chatWrap');
-  if (wrap) wrap.scrollTop = wrap.scrollHeight;
-}
-
-function renderChatMessage(meetingId, msgId, msg) {
-  const mine = msg.uid === currentUser.uid;
-  const time = msg.createdAt ? new Date(msg.createdAt).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' }) : '';
-  if (msg.type === 'system') {
-    const cls = msg.command === '결론' ? 'conclude' : msg.command === '공지' ? 'notice' : msg.command === '지목' ? 'mention' : 'end';
-    const emoji = msg.command === '결론' ? '✅' : msg.command === '공지' ? '📢' : msg.command === '지목' ? '👋' : '🔚';
-    return `<div class="chat-system ${cls}">${emoji} ${esc(msg.text)}</div>`;
-  }
-  if (msg.type === 'poll') {
-    const votes = msg.pollVotes || {};
-    const oCount = Object.values(votes).filter(v => v === 'O').length;
-    const xCount = Object.values(votes).filter(v => v === 'X').length;
-    const my = votes[currentUser.uid];
-    return `<div class="chat-poll">
-      <div style="font-weight:700;font-size:13px;margin-bottom:8px;">📊 ${esc(msg.text)}</div>
-      <div class="ox-btns">
-        <button class="o ${my === 'O' ? 'sel' : ''}" onclick="castMeetingPollVote('${meetingId}','${msgId}','O')">O (${oCount})</button>
-        <button class="x ${my === 'X' ? 'sel' : ''}" onclick="castMeetingPollVote('${meetingId}','${msgId}','X')">X (${xCount})</button>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <button class="btn small" onclick="openCreatePollModal()">+ 투표 만들기</button>
+        ${isAdmin() ? `<button class="btn ghost small" onclick="openCreatePeerEvalModal()">+ 동료평가 만들기</button>` : ''}
       </div>
-    </div>`;
-  }
-  return `<div class="chat-row ${mine ? 'mine' : 'theirs'}">
-    ${!mine ? `<div class="chat-sender">${esc(userName(msg.uid))}</div>` : ''}
-    <div class="chat-bubble">${esc(msg.text)}</div>
-    <div class="chat-time">${time}</div>
-  </div>`;
-}
-
-function assignModeratorDirect(meetingId, uid) {
-if (!isAdmin()) { toast("권한 없어"); return; }
-    db.ref(`meetings/${meetingId}`).update({ moderatorUid: uid, status: 'active' }).then(() => toast('사회자를 지정하고 회의를 시작했어'));
-}
-function castModeratorVote(meetingId, candidateUid) {
-  db.ref(`meetingModeratorVotes/${meetingId}/${currentUser.uid}`).set(candidateUid).then(() => toast('투표했어'));
-}
-function finalizeModeratorVote(meetingId) {
-if (!isAdmin()) { toast("권한 없어"); return; }
-    const votes = cache.meetingModeratorVotes[meetingId] || {};
-  const tally = {};
-  Object.values(votes).forEach(c => { tally[c] = (tally[c] || 0) + 1; });
-  const entries = Object.entries(tally);
-  if (!entries.length) { toast('아직 투표가 없어'); return; }
-  entries.sort((a, b) => b[1] - a[1]);
-  const winner = entries[0][0];
-  db.ref(`meetings/${meetingId}`).update({ moderatorUid: winner, status: 'active' }).then(() => toast(userName(winner) + '님이 사회자로 확정됐어'));
-}
-
-const MEETING_COMMANDS = ['결론', '공지', '종료', '지목', '투표'];
-function sendMeetingMessage(meetingId) {
-  const input = document.getElementById('meetingChatInput');
-  if (!input) return;
-  const text = input.value.trim();
-  if (!text) return;
-  const m = cache.meetings[meetingId];
-  if (!m || m.status !== 'active') { toast('종료된 회의야'); return; }
-  const isModerator = m.moderatorUid === currentUser.uid;
-  const match = text.match(/^@(\S+)\s*([\s\S]*)$/);
-  const commandWord = match ? match[1] : null;
-  const payload = match ? match[2].trim() : '';
-
-  if (isModerator && commandWord && MEETING_COMMANDS.includes(commandWord)) {
-    handleMeetingCommand(meetingId, commandWord, payload);
-  } else {
-    const id = newKey(`meetingMessages/${meetingId}`);
-    db.ref(`meetingMessages/${meetingId}/${id}`).set({ uid: currentUser.uid, text, type: 'message', createdAt: Date.now() });
-  }
-  input.value = '';
-  input.focus();
-}
-function handleMeetingCommand(meetingId, command, payload) {
-  const id = newKey(`meetingMessages/${meetingId}`);
-  if (command === '결론') {
-    if (!payload) { toast('@결론 뒤에 내용을 적어줘'); return; }
-    db.ref(`meetingMessages/${meetingId}/${id}`).set({ uid: currentUser.uid, text: payload, type: 'system', command: '결론', createdAt: Date.now() });
-    db.ref(`meetings/${meetingId}`).update({ conclusion: { text: payload, decidedBy: currentUser.uid, decidedAt: Date.now() }, status: 'ended' });
-    toast('결론을 내리고 회의를 종료했어');
-  } else if (command === '공지') {
-    if (!payload) { toast('@공지 뒤에 내용을 적어줘'); return; }
-    db.ref(`meetingMessages/${meetingId}/${id}`).set({ uid: currentUser.uid, text: payload, type: 'system', command: '공지', createdAt: Date.now() });
-  } else if (command === '종료') {
-    db.ref(`meetingMessages/${meetingId}/${id}`).set({ uid: currentUser.uid, text: '회의가 종료됐어요', type: 'system', command: '종료', createdAt: Date.now() });
-    db.ref(`meetings/${meetingId}/status`).set('ended');
-    toast('회의를 종료했어');
-  } else if (command === '지목') {
-    const mm = cache.meetings[meetingId];
-    const target = Object.keys(mm.participantIds || {}).find(uid => userName(uid) === payload);
-    if (!target) { toast('참가자 중에 그 이름을 못 찾았어'); return; }
-    db.ref(`meetingMessages/${meetingId}/${id}`).set({ uid: currentUser.uid, text: `${esc(userName(target))}님, 발언해주세요`, type: 'system', command: '지목', mentionUid: target, createdAt: Date.now() });
-  } else if (command === '투표') {
-    if (!payload) { toast('@투표 뒤에 질문을 적어줘'); return; }
-    db.ref(`meetingMessages/${meetingId}/${id}`).set({ uid: currentUser.uid, text: payload, type: 'poll', command: '투표', pollOptions: ['O', 'X'], pollVotes: {}, createdAt: Date.now() });
-  }
-}
-function castMeetingPollVote(meetingId, msgId, answer) {
-  db.ref(`meetingMessages/${meetingId}/${msgId}/pollVotes/${currentUser.uid}`).set(answer);
-}
-
-function renderMe() {
-  const info = cache.users[currentUser.uid] || {};
-  document.getElementById('pageContent').innerHTML = `
-    <div class="card">
-      <h2>내 정보</h2>
-      <table>
-        <tbody>
-          <tr><td style="width:110px;color:var(--text-dim);">이름</td><td>${esc(info.name)}</td></tr>
-          <tr><td style="color:var(--text-dim);">권한</td><td>${info.systemRole === 'admin' ? '전체관리자' : '멤버'}</td></tr>
-          <tr><td style="color:var(--text-dim);">가입일</td><td>${info.createdAt ? new Date(info.createdAt).toLocaleDateString('ko-KR') : '-'}</td></tr>
-        </tbody>
-      </table>
     </div>
-    <div class="card">
-      <h2>비밀번호 변경</h2>
-      <div class="field"><label>현재 비밀번호</label><input id="mePwCurrent" type="password"></div>
-      <div class="field"><label>새 비밀번호</label><input id="mePwNew" type="password" placeholder="4자 이상"></div>
-      <div class="field"><label>새 비밀번호 확인</label><input id="mePwNew2" type="password"></div>
-      <div class="err-msg" id="mePwErr"></div>
-      <button class="btn" onclick="submitChangePassword()">변경하기</button>
-    </div>
+    ${approvalHtml}
+    ${pollsHtml || peerHtml ? pollsHtml + peerHtml : `<div class="card"><div class="empty">진행 중인 투표가 없어요. 위에서 만들어봐!</div></div>`}
   `;
 }
-async function submitChangePassword() {
-  const cur = document.getElementById('mePwCurrent').value;
-  const next = document.getElementById('mePwNew').value;
-  const next2 = document.getElementById('mePwNew2').value;
-  const errEl = document.getElementById('mePwErr');
-  const info = cache.users[currentUser.uid] || {};
-  errEl.textContent = '';
-  const curHash = await hashPassword(cur);
-  // 해시 비교, 구버전 평문 호환
-  if (curHash !== info.password && cur !== info.password) { errEl.textContent = '현재 비밀번호가 맞지 않아'; return; }
-  if (next.length < 4) { errEl.textContent = '새 비밀번호는 4자 이상으로 해줘'; return; }
-  if (next !== next2) { errEl.textContent = '새 비밀번호 확인이 서로 달라'; return; }
-  const nextHash = await hashPassword(next);
-  db.ref('users/' + currentUser.uid + '/password').set(nextHash).then(() => {
-    toast('비밀번호를 변경했어');
-    ['mePwCurrent', 'mePwNew', 'mePwNew2'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
-  });
-}
+
 
 function renderSettings() {
   if (!isAdmin()) return renderNoAccess();
-  const periods = Object.entries(cache.periods || {}).sort((a, b) => (b[1].createdAt || 0) - (a[1].createdAt || 0));
+  const periods = Object.entries({} || {}).sort((a, b) => (b[1].createdAt || 0) - (a[1].createdAt || 0));
   const polls = Object.entries(cache.polls || {}).sort((a, b) => (b[1].createdAt || 0) - (a[1].createdAt || 0));
   const th = (cache.settings && cache.settings.gradeThresholds) || { a: 90, b: 75, c: 50 };
   document.getElementById('pageContent').innerHTML = `
     <div class="card">
-      <h2>투표 주기 <button class="btn small" style="margin-left:auto;" onclick="openCreatePeriodModal()">+ 새 주기</button></h2>
+      <h2>설문/투표 관리</h2>
       <table>
         <thead><tr><th>이름</th><th>종류</th><th>상태</th><th></th></tr></thead>
         <tbody>
@@ -2808,7 +2025,7 @@ if (!isAdmin()) { toast("권한 없어"); return; }
     if (options.length < 2) { errEl.textContent = '선택지를 2개 이상 입력해줘'; return; }
   }
   const id = newKey('polls');
-  db.ref('polls/' + id).set({ question, type, options, createdBy: currentUser.uid, createdAt: Date.now(), closed: false })
+  db.ref('polls/' + id).set({ question, type, options, createdBy: currentUser.uid, createdAt: Date.now(), closed: false, approved: isAdmin() })
     .then(() => { toast('설문을 만들었어'); closeModal(); });
 }
 function closePoll(id) {
@@ -2822,33 +2039,13 @@ if (!isAdmin()) { toast("권한 없어"); return; }
     .then(() => db.ref('pollVotes/' + id).remove())
     .then(() => toast('삭제했어'));
 }
-function openCreatePeriodModal() {
-  openModal(`
-    <h3>새 주기 만들기</h3>
-    <div class="field"><label>이름</label><input id="mPeriodLabel" placeholder="예: 7월 3주차"></div>
-    <div class="field"><label>종류</label>
-      <select id="mPeriodType"><option value="weekly">주간</option><option value="monthly">월간</option></select>
-    </div>
-    <div class="row" style="justify-content:flex-end;">
-      <button class="btn ghost" onclick="closeModal()">취소</button>
-      <button class="btn" onclick="submitCreatePeriod()">만들고 활성화</button>
-    </div>`);
-}
-function submitCreatePeriod() {
-if (!isAdmin()) { toast("권한 없어"); return; }
-    const label = document.getElementById('mPeriodLabel').value.trim();
-  const type = document.getElementById('mPeriodType').value;
-  if (!label) { toast('이름을 입력해줘'); return; }
-  const id = newKey('periods');
-  db.ref('periods/' + id).set({ label, type, createdAt: Date.now() })
-    .then(() => db.ref('settings/currentPeriodId').set(id))
-    .then(() => db.ref('settings/voteCycle').set(type))
-    .then(() => { toast('새 주기를 활성화했어'); closeModal(); });
-}
+
+
 function activatePeriod(id) {
 if (!isAdmin()) { toast("권한 없어"); return; }
     db.ref('settings/currentPeriodId').set(id).then(() => toast('주기를 활성화했어'));
 }
+
 
 </script>
 </body>
