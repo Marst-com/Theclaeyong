@@ -1090,12 +1090,106 @@ function renderAccounts(){
   </table></div>`;
 }
 function openCreateAccountModal(){
-  openModal(`<h3>계정 생성</h3>
-    <div class="field"><label>이름</label><input id="mAccName"></div>
-    <div class="field"><label>비밀번호 (6자 이상)</label><input id="mAccPw" type="password"></div>
-    <div class="field"><label>권한</label><select id="mAccRole"><option value="user">멤버</option><option value="admin">관리자</option></select></div>
-    <div class="err-msg" id="mAccErr"></div>
-    <div class="row" style="justify-content:flex-end"><button class="btn ghost" onclick="closeModal()">취소</button><button class="btn" onclick="submitCreateAccount()">생성</button></div>`);
+  openModal(`<h3>계정 생성 <button onclick="showAccHelp()" style="font-size:11px;color:var(--dim);text-decoration:underline;font-weight:600;margin-left:6px">이게 뭔가요?</button></h3>
+    <div style="display:flex;gap:6px;margin-bottom:14px">
+      <button id="accTabSingle" class="btn small" onclick="switchAccTab('single')">개별 생성</button>
+      <button id="accTabBulk" class="btn ghost small" onclick="switchAccTab('bulk')">대량 생성</button>
+    </div>
+
+    <!-- 개별 생성 -->
+    <div id="accPanelSingle">
+      <div class="field"><label>이름</label><input id="mAccName" placeholder="예: 홍길동"></div>
+      <div class="field"><label>비밀번호 (6자 이상)</label><input id="mAccPw" type="password"></div>
+      <div class="field"><label>권한</label><select id="mAccRole"><option value="user">멤버</option><option value="admin">관리자</option></select></div>
+      <div class="err-msg" id="mAccErr"></div>
+      <div class="row" style="justify-content:flex-end"><button class="btn ghost" onclick="closeModal()">취소</button><button class="btn" onclick="submitCreateAccount()">생성</button></div>
+    </div>
+
+    <!-- 대량 생성 -->
+    <div id="accPanelBulk" class="hidden">
+      <div class="info-banner">접두사 + 번호 형식으로 여러 계정을 한 번에 만들어. 비밀번호는 계정명과 동일하게 설정돼 — 나중에 각자 변경하면 돼.</div>
+      <div class="field"><label>접두사 <button onclick="showAccHelp()" style="font-size:10px;color:var(--dim);text-decoration:underline;margin-left:4px">예시 보기</button></label>
+        <input id="mBulkPrefix" placeholder="예: abcd" oninput="updateBulkPreview()"></div>
+      <div style="display:flex;gap:8px">
+        <div class="field" style="flex:1"><label>시작 번호</label><input id="mBulkStart" type="number" value="1" min="1" oninput="updateBulkPreview()"></div>
+        <div class="field" style="flex:1"><label>끝 번호</label><input id="mBulkEnd" type="number" value="24" min="1" oninput="updateBulkPreview()"></div>
+        <div class="field" style="flex:1"><label>번호 자릿수</label><input id="mBulkPad" type="number" value="2" min="1" max="4" oninput="updateBulkPreview()"></div>
+      </div>
+      <div class="field"><label>권한</label><select id="mBulkRole"><option value="user">멤버</option><option value="admin">관리자</option></select></div>
+      <div id="mBulkPreview" style="font-size:12px;color:var(--dim);background:var(--elev2);border-radius:9px;padding:9px 12px;margin-bottom:10px;font-family:monospace;line-height:1.7"></div>
+      <div class="err-msg" id="mBulkErr"></div>
+      <div class="row" style="justify-content:flex-end"><button class="btn ghost" onclick="closeModal()">취소</button><button class="btn" onclick="submitBulkAccounts()">일괄 생성</button></div>
+    </div>`);
+  updateBulkPreview();
+}
+
+function switchAccTab(tab){
+  document.getElementById('accTabSingle').className = tab==='single'?'btn small':'btn ghost small';
+  document.getElementById('accTabBulk').className = tab==='bulk'?'btn small':'btn ghost small';
+  document.getElementById('accPanelSingle').classList.toggle('hidden', tab!=='single');
+  document.getElementById('accPanelBulk').classList.toggle('hidden', tab!=='bulk');
+}
+
+function updateBulkPreview(){
+  const prefix = (document.getElementById('mBulkPrefix')?.value||'').trim();
+  const start = Number(document.getElementById('mBulkStart')?.value||1);
+  const end = Number(document.getElementById('mBulkEnd')?.value||24);
+  const pad = Number(document.getElementById('mBulkPad')?.value||2);
+  const preview = document.getElementById('mBulkPreview');
+  if(!preview) return;
+  if(!prefix){ preview.textContent='접두사를 입력해줘'; return; }
+  if(start>end){ preview.textContent='시작 번호가 끝 번호보다 클 수 없어'; return; }
+  if(end-start>99){ preview.textContent=`계정이 ${end-start+1}개야. 100개 이하로 해줘`; return; }
+  const names = [];
+  for(let i=start;i<=end;i++) names.push(prefix + String(i).padStart(pad,'0'));
+  const shown = names.slice(0,3);
+  const more = names.length>3 ? ` ... ${names[names.length-1]}` : '';
+  preview.innerHTML = `✅ ${names.length}개 계정 생성 예정<br>${shown.join(', ')}${more}<br><span style="opacity:.7">비밀번호: 계정명과 동일 (예: ${shown[0]})</span>`;
+}
+
+async function submitBulkAccounts(){
+  if(!isAdmin()){toast('권한 없어');return;}
+  const prefix=(document.getElementById('mBulkPrefix')?.value||'').trim();
+  const start=Number(document.getElementById('mBulkStart')?.value||1);
+  const end=Number(document.getElementById('mBulkEnd')?.value||24);
+  const pad=Number(document.getElementById('mBulkPad')?.value||2);
+  const role=document.getElementById('mBulkRole')?.value||'user';
+  const err=document.getElementById('mBulkErr'); err.textContent='';
+  if(!prefix){err.textContent='접두사 입력해줘';return;}
+  if(start>end){err.textContent='시작 번호 확인';return;}
+  if(end-start>99){err.textContent='100개 이하로 해줘';return;}
+  const btn=document.querySelector('#accPanelBulk .btn:not(.ghost)');
+  if(btn) btn.textContent='생성 중...';
+  const names=[];
+  for(let i=start;i<=end;i++) names.push(prefix+String(i).padStart(pad,'0'));
+  let ok=0;
+  for(const name of names){
+    if(Object.values(cache.users).some(u=>u.name===name)) continue;
+    const hash=await hashPw(name);
+    await db.ref('users/'+newKey('users')).set({name,password:hash,systemRole:role,createdAt:Date.now()});
+    ok++;
+  }
+  toast(`${ok}개 계정 만들었어! (중복 ${names.length-ok}개 제외)`);
+  closeModal();
+}
+
+function showAccHelp(){
+  openModal(`<h3>계정 생성 도움말</h3>
+    <div style="font-size:13.5px;line-height:1.8;color:var(--text)">
+      <b>📌 개별 생성</b><br>
+      이름과 비밀번호를 직접 입력해서 계정 1개를 만들어.<br><br>
+      <b>📌 대량 생성</b><br>
+      접두사 + 번호 형식으로 여러 계정을 한 번에 만들어.<br><br>
+      <b>예시:</b> 접두사 <code style="background:var(--elev2);padding:1px 5px;border-radius:4px">abcd</code>, 시작 <code style="background:var(--elev2);padding:1px 5px;border-radius:4px">1</code>, 끝 <code style="background:var(--elev2);padding:1px 5px;border-radius:4px">24</code>, 자릿수 <code style="background:var(--elev2);padding:1px 5px;border-radius:4px">2</code> 로 설정하면:<br>
+      <code style="background:var(--elev2);padding:4px 8px;border-radius:6px;display:inline-block;margin:6px 0;font-size:13px">abcd01, abcd02, ... abcd24</code><br><br>
+      <b>🔑 비밀번호:</b> 처음엔 계정명과 동일하게 설정돼.<br>
+      예: <code style="background:var(--elev2);padding:1px 5px;border-radius:4px">abcd01</code> 계정의 초기 비밀번호는 <code style="background:var(--elev2);padding:1px 5px;border-radius:4px">abcd01</code>이야.<br>
+      각자 로그인 후 "내 정보" 탭에서 변경하면 돼.<br><br>
+      <b>⚙️ 번호 자릿수:</b><br>
+      <code style="background:var(--elev2);padding:1px 5px;border-radius:4px">2</code> → 01, 02, ..., 24<br>
+      <code style="background:var(--elev2);padding:1px 5px;border-radius:4px">3</code> → 001, 002, ..., 024
+    </div>
+    <div class="row" style="justify-content:flex-end;margin-top:14px"><button class="btn" onclick="closeModal()">확인</button></div>`);
 }
 async function submitCreateAccount(){
   if(!isAdmin()){toast('권한 없어');return;}
