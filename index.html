@@ -476,8 +476,28 @@ tr:hover td{background:var(--surface2);}
   .nav-item svg{width:20px;height:20px;}
 }
 
-/* ── 유틸 ── */
-.hidden{display:none!important;}
+/* ── 대시보드 2열 반응형 ── */
+@media(max-width:1024px){
+  .dash-grid{grid-template-columns:1fr!important;}
+}
+
+/* ── 추가 UI polish ── */
+.stat-row{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px;}
+.stat-card{
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:var(--r-lg);padding:16px 18px;
+  box-shadow:var(--shadow-sm);
+}
+.stat-card .stat-label{font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.4px;margin-bottom:6px;}
+.stat-card .stat-val{font-size:26px;font-weight:800;letter-spacing:-.5px;color:var(--text);}
+.stat-card .stat-sub{font-size:11.5px;color:var(--text2);margin-top:3px;}
+.section-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
+.section-header h3{font-size:15px;font-weight:800;letter-spacing:-.3px;}
+.progress-bar-wrap{height:6px;border-radius:99px;background:var(--surface2);overflow:hidden;margin-top:8px;}
+.progress-bar{height:100%;border-radius:99px;background:linear-gradient(90deg,var(--g2),var(--g3));transition:width .5s cubic-bezier(.22,.68,0,1.2);}
+.card-hover{transition:all .18s cubic-bezier(.22,.68,0,1.2);}
+.card-hover:hover{transform:translateY(-2px);box-shadow:var(--shadow-md);}
+
 ::-webkit-scrollbar{width:5px;height:5px;}
 ::-webkit-scrollbar-track{background:transparent;}
 ::-webkit-scrollbar-thumb{background:var(--border);border-radius:5px;}
@@ -881,6 +901,8 @@ function renderDashboard(){
   const tiles=['myDuties','vote','complaints','memos','meetings',
     ...(myManagedDuties().length?['checks']:[]),
     ...(isAdmin()?['ai','accounts','duties']:[])];
+
+  // 임무 현황
   let listHtml='',listTitle='';
   if(myManagedDuties().length){
     const rows=[];
@@ -894,20 +916,85 @@ function renderDashboard(){
     listTitle=`임무 현황 ${done}/${rows.length}`;
     listHtml=rows.length?renderExpandable('dash-checks',rows):emptyDiv('대상자 없음');
   }
+
+  // 공지사항 (최신 5개)
+  const notices=Object.entries(cache.notices||{})
+    .sort((a,b)=>{if(b[1].pinned!==a[1].pinned)return(b[1].pinned?1:0)-(a[1].pinned?1:0);return(b[1].createdAt||0)-(a[1].createdAt||0);})
+    .slice(0,5);
+  const noticeHtml=notices.length?notices.map(([,n])=>`
+    <div style="padding:11px 0;border-bottom:1px solid var(--border2);cursor:pointer" onclick="renderPage('notices')">
+      <div style="display:flex;align-items:center;gap:6px;margin-bottom:3px">
+        ${n.pinned?`<span style="font-size:10px;background:var(--g1);color:var(--g4);padding:1px 6px;border-radius:99px;font-weight:700">📌 고정</span>`:''}
+        <span style="font-weight:700;font-size:13.5px;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(n.title)}</span>
+      </div>
+      <div style="font-size:12px;color:var(--text2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(n.content)}</div>
+      <div style="font-size:11px;color:var(--text3);margin-top:3px">${n.createdAt?new Date(n.createdAt).toLocaleDateString('ko-KR'):''}</div>
+    </div>`).join(''):`<div class="empty" style="padding:20px 0">공지사항 없음</div>`;
+
+  const totalMembers=Object.keys(cache.users||{}).length;
+  const totalDuties=Object.keys(cache.duties||{}).length;
+  const pendingComplaints=Object.values(cache.complaints||{}).filter(c=>c.status==='pending').length;
+
   g('pageContent').innerHTML=`
-    <div class="hero-card"><div class="hero-label">1인1역 관리 시스템</div><div class="hero-name">👋 ${esc(currentUser.name)}님</div></div>
-    ${todo>0
-      ?`<div class="alert-card purple"><span style="font-size:22px">📌</span><div><div class="alert-title">할 일이 있어요!</div><div class="alert-sub">확인 필요 <span class="alert-pill">${todo}</span></div></div></div>`
-      :`<div class="alert-card purple" ><span style="font-size:22px">🎉</span><div><div class="alert-title">오늘 할 일 완료!</div></div></div>`}
-    <div class="tile-grid">${tiles.map(id=>{
-      const n=navBadge(id),[label]=PAGE_TITLES[id]||[id];
-      return `<button class="tile" onclick="renderPage('${id}')">
-        ${n?`<span class="tile-badge">${n}</span>`:''}
-        <span class="tile-icon">${svgIcon(id)}</span>
-        <span class="tile-label">${esc(label)}</span>
-      </button>`;
-    }).join('')}</div>
-    ${listTitle?`<div class="card"><h2>${esc(listTitle)}</h2>${listHtml}</div>`:''}`;
+    <div class="dash-grid" style="display:grid;grid-template-columns:1fr 300px;gap:18px;align-items:start">
+      <!-- 왼쪽: 메인 콘텐츠 -->
+      <div>
+        <!-- 히어로 -->
+        <div class="hero-card" style="margin-bottom:14px">
+          <div class="hero-label">1인1역 관리 시스템</div>
+          <div class="hero-name" style="margin-bottom:8px">👋 ${esc(currentUser.name)}님</div>
+          <div style="font-size:13px;opacity:.75">${new Date().toLocaleDateString('ko-KR',{year:'numeric',month:'long',day:'numeric',weekday:'long'})}</div>
+        </div>
+
+        <!-- 통계 -->
+        <div class="stat-row">
+          <div class="stat-card">
+            <div class="stat-label">전체 멤버</div>
+            <div class="stat-val">${totalMembers}</div>
+            <div class="stat-sub">명 등록됨</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">1인1역</div>
+            <div class="stat-val">${totalDuties}</div>
+            <div class="stat-sub">개 운영 중</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">미처리 민원</div>
+            <div class="stat-val" style="color:${pendingComplaints>0?'var(--red)':'var(--g2)'}">${pendingComplaints}</div>
+            <div class="stat-sub">${pendingComplaints>0?'처리 필요':'모두 완료'}</div>
+          </div>
+        </div>
+
+        ${todo>0
+          ?`<div class="alert-card purple" style="margin-bottom:14px"><span class="alert-icon">📌</span><div><div class="alert-title">할 일이 있어요!</div><div class="alert-sub">확인 필요 항목 <span class="alert-pill">${todo}개</span></div></div></div>`
+          :`<div class="alert-card green" style="margin-bottom:14px"><span class="alert-icon">🎉</span><div><div class="alert-title">오늘 할 일 완료!</div><div class="alert-sub">수고했어요</div></div></div>`}
+
+        <!-- 타일 -->
+        <div class="tile-grid" style="margin-bottom:14px">${tiles.map(id=>{
+          const n=navBadge(id),[label]=PAGE_TITLES[id]||[id];
+          return `<button class="tile" onclick="renderPage('${id}')">
+            ${n?`<span class="tile-badge">${n}</span>`:''}
+            <span class="tile-icon">${svgIcon(id)}</span>
+            <span class="tile-label">${esc(label)}</span>
+          </button>`;
+        }).join('')}</div>
+
+        <!-- 임무 현황 -->
+        ${listTitle?`<div class="card"><h2>${esc(listTitle)}</h2>${listHtml}</div>`:''}
+      </div>
+
+      <!-- 오른쪽: 공지사항 사이드 패널 -->
+      <div>
+        <div class="card" style="position:sticky;top:0">
+          <h2 style="display:flex;align-items:center;justify-content:space-between">
+            <span>📢 공지사항</span>
+            <button class="btn ghost small" style="font-size:11px;padding:4px 8px" onclick="renderPage('notices')">전체보기</button>
+          </h2>
+          ${noticeHtml}
+          ${isAdmin()?`<button class="btn ghost small" style="width:100%;justify-content:center;margin-top:10px" onclick="renderPage('notices')">+ 공지 작성</button>`:''}
+        </div>
+      </div>
+    </div>`;
 }
 
 /* ── My Duties ── */
