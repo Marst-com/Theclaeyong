@@ -672,9 +672,25 @@ function init() {
 function setLoadMsg(m) { const el=g('loadingMsg'); if(el) el.textContent=m; }
 function showScreen(name) {
   ['loadingScreen','loginScreen','setupScreen'].forEach(id => {
-    const el=g(id); if(el) el.classList.toggle('hidden', id !== name+'Screen');
+    const el=g(id);
+    if(!el) return;
+    const show = id === name+'Screen';
+    el.classList.toggle('hidden', !show);
+    el.style.display = show ? '' : 'none';
   });
   g('app').classList.remove('active');
+}
+function enterApp() {
+  // 모든 auth 화면 완전히 숨기기
+  ['loadingScreen','loginScreen','setupScreen'].forEach(id=>{
+    const el=g(id);
+    if(el){ el.classList.add('hidden'); el.style.display='none'; }
+  });
+  g('app').classList.add('active');
+  g('userChipName').textContent=currentUser.name;
+  g('userChipRole').textContent=isAdmin()?'전체관리자':'멤버';
+  const av=g('userAvatar'); if(av) av.textContent=currentUser.name.slice(0,1);
+  syncThemeBtns(); buildNav(); renderPage('dashboard');
 }
 function startListeners() {
   const paths=['users','duties','completions','peerEvals','peerEvalVotes',
@@ -753,15 +769,6 @@ function handleLogout() {
   g('loginName').value=''; g('loginPw').value='';
   const btn=g('loginBtn'); if(btn) btn.textContent='로그인';
 }
-function enterApp() {
-  ['loadingScreen','loginScreen','setupScreen'].forEach(id=>{const el=g(id);if(el)el.classList.add('hidden');});
-  g('app').classList.add('active');
-  g('userChipName').textContent=currentUser.name;
-  g('userChipRole').textContent=isAdmin()?'전체관리자':'멤버';
-  const av=g('userAvatar'); if(av) av.textContent=currentUser.name.slice(0,1);
-  syncThemeBtns(); buildNav(); renderPage('dashboard');
-}
-
 /* ── Theme ── */
 function setTheme(m){localStorage.setItem('theme',m);applyTheme(m);syncThemeBtns();}
 function applyTheme(m){
