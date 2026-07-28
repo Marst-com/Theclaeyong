@@ -847,12 +847,12 @@ function navItems(){
     {id:'memos',label:'메모함',sec:'활동'},
     {id:'notices',label:'공지사항',sec:'활동'},
     {id:'apply',label:'1인1역 신청',sec:'더보기'},
+    {id:'ai',label:'AI 브리핑',sec:'더보기'},
     {id:'groups',label:'모둠',sec:'더보기'},
     {id:'meetings',label:'회의',sec:'더보기'},
   ];
   if(myManagedDuties().length) all.push({id:'checks',label:'임무 확인',sec:'더보기'});
   if(isAdmin()) all.push(
-    {id:'ai',label:'AI 브리핑',sec:'관리자'},
     {id:'accounts',label:'계정 관리',sec:'관리자'},
     {id:'duties',label:'1인1역 관리',sec:'관리자'},
     {id:'settings',label:'설정',sec:'관리자'}
@@ -1528,8 +1528,6 @@ function openCreateAccountModal(){
       <button id="accTabSingle" class="btn small" onclick="switchAccTab('single')">개별 생성</button>
       <button id="accTabBulk" class="btn ghost small" onclick="switchAccTab('bulk')">대량 생성</button>
     </div>
-
-    <!-- 개별 생성 -->
     <div id="accPanelSingle">
       <div class="field"><label>이름</label><input id="mAccName" placeholder="예: 홍길동"></div>
       <div class="field"><label>비밀번호 (6자 이상)</label><input id="mAccPw" type="password"></div>
@@ -1537,30 +1535,34 @@ function openCreateAccountModal(){
       <div class="err-msg" id="mAccErr"></div>
       <div class="row" style="justify-content:flex-end"><button class="btn ghost" onclick="closeModal()">취소</button><button class="btn" onclick="submitCreateAccount()">생성</button></div>
     </div>
-
-    <!-- 대량 생성 -->
-    <div id="accPanelBulk" class="hidden">
-      <div class="info-banner">접두사 + 번호 형식으로 여러 계정을 한 번에 만들어. 비밀번호는 계정명과 동일하게 설정돼 — 나중에 각자 변경하면 돼.</div>
-      <div class="field"><label>접두사 <button onclick="showAccHelp()" style="font-size:10px;color:var(--text2);text-decoration:underline;margin-left:4px">예시 보기</button></label>
-        <input id="mBulkPrefix" placeholder="예: abcd" oninput="updateBulkPreview()"></div>
+    <div id="accPanelBulk" style="display:none">
+      <div class="info-banner">접두사 + 번호 형식으로 여러 계정을 한 번에 만들어. 비밀번호는 계정명과 동일하게 설정돼.</div>
+      <div class="field"><label>접두사</label><input id="mBulkPrefix" placeholder="예: abcd" oninput="updateBulkPreview()"></div>
       <div style="display:flex;gap:8px">
-        <div class="field" style="flex:1"><label>시작 번호</label><input id="mBulkStart" type="number" value="1" min="1" oninput="updateBulkPreview()"></div>
-        <div class="field" style="flex:1"><label>끝 번호</label><input id="mBulkEnd" type="number" value="24" min="1" oninput="updateBulkPreview()"></div>
-        <div class="field" style="flex:1"><label>번호 자릿수</label><input id="mBulkPad" type="number" value="2" min="1" max="4" oninput="updateBulkPreview()"></div>
+        <div class="field" style="flex:1"><label>시작</label><input id="mBulkStart" type="number" value="1" min="1" oninput="updateBulkPreview()"></div>
+        <div class="field" style="flex:1"><label>끝</label><input id="mBulkEnd" type="number" value="24" min="1" oninput="updateBulkPreview()"></div>
+        <div class="field" style="flex:1"><label>자릿수</label><input id="mBulkPad" type="number" value="2" min="1" max="4" oninput="updateBulkPreview()"></div>
       </div>
       <div class="field"><label>권한</label><select id="mBulkRole"><option value="user">멤버</option><option value="admin">관리자</option></select></div>
       <div id="mBulkPreview" style="font-size:12px;color:var(--text2);background:var(--surface2);border-radius:9px;padding:9px 12px;margin-bottom:10px;font-family:monospace;line-height:1.7"></div>
       <div class="err-msg" id="mBulkErr"></div>
       <div class="row" style="justify-content:flex-end"><button class="btn ghost" onclick="closeModal()">취소</button><button class="btn" onclick="submitBulkAccounts()">일괄 생성</button></div>
     </div>`);
-  updateBulkPreview();
+  // 모달 삽입 완료 후 확실하게 단일 탭 초기화
+  switchAccTab('single');
 }
 
 function switchAccTab(tab){
-  document.getElementById('accTabSingle').className = tab==='single'?'btn small':'btn ghost small';
-  document.getElementById('accTabBulk').className = tab==='bulk'?'btn small':'btn ghost small';
-  document.getElementById('accPanelSingle').classList.toggle('hidden', tab!=='single');
-  document.getElementById('accPanelBulk').classList.toggle('hidden', tab!=='bulk');
+  const single=document.getElementById('accTabSingle');
+  const bulk=document.getElementById('accTabBulk');
+  const pSingle=document.getElementById('accPanelSingle');
+  const pBulk=document.getElementById('accPanelBulk');
+  if(!single||!pSingle) return;
+  single.className = tab==='single'?'btn small':'btn ghost small';
+  if(bulk) bulk.className = tab==='bulk'?'btn small':'btn ghost small';
+  pSingle.style.display = tab==='single'?'':'none';
+  if(pBulk) pBulk.style.display = tab==='bulk'?'':'none';
+  if(tab==='bulk') updateBulkPreview();
 }
 
 function updateBulkPreview(){
@@ -1727,18 +1729,45 @@ function submitThresholds(){
 
 /* ── AI ── */
 const AI_INTENTS=[
-  {keys:['안녕','hello','hi'],fn:()=>aiProse([`👋 ${esc(currentUser.name)}님! 뭐가 궁금해?`])},
-  {keys:['요약','브리핑','전체','오늘'],fn:aiFullSummary},
-  {keys:['민원'],fn:aiComplaints},
-  {keys:['신청','승인'],fn:aiApplications},
-  {keys:['임무','완료','체크'],fn:aiChecks},
-  {keys:['투표','설문','동료'],fn:aiVoteStatus},
-  {keys:['멤버','인원','명단'],fn:aiMembers},
-  {keys:['공지'],fn:aiNotices},
-  {keys:['회의'],fn:aiMeetings},
-  {keys:['모둠'],fn:aiGroups},
-  {keys:['도움','help','사용법'],fn:aiHelp},
+  {keys:['안녕','hello','hi','ㅎㅇ'],label:'안녕!',fn:()=>aiProse([`👋 ${esc(currentUser.name)}님! 뭐가 궁금해?`,`"민원 있어?", "내 역할", "투표 현황" 등 자유롭게 물어봐.`])},
+  {keys:['요약','브리핑','전체','오늘','현황 알'],label:'전체 현황 요약',fn:aiFullSummary},
+  {keys:['민원'],label:'민원 현황',fn:aiComplaints},
+  {keys:['신청','승인 대기'],label:'1인1역 신청 현황',fn:aiApplications},
+  {keys:['임무','완료','체크','미완료'],label:'임무 완료 현황',fn:aiChecks},
+  {keys:['투표','설문','동료','평가'],label:'투표/동료평가 현황',fn:aiVoteStatus},
+  {keys:['멤버','인원','명단','몇 명'],label:'멤버 현황',fn:aiMembers},
+  {keys:['공지','알림'],label:'공지사항',fn:aiNotices},
+  {keys:['회의'],label:'회의 현황',fn:aiMeetings},
+  {keys:['모둠','그룹'],label:'모둠 편성 현황',fn:aiGroups},
+  {keys:['내 역할','내 1인1역','내가 맡','내 임무'],label:'내 1인1역',fn:aiMyDuties},
+  {keys:['내 신청','신청 상태','승인 됐'],label:'내 신청 현황',fn:aiMyApplication},
+  {keys:['메모','쪽지'],label:'내 메모함',fn:aiMyMemos},
+  {keys:['도움','help','사용법','뭐 물어','어떻게'],label:'도움말',fn:aiHelp},
 ];
+
+function aiMyDuties(){
+  const mine=Object.entries(cache.duties||{}).filter(([,d])=>d.memberIds?.[currentUser.uid]);
+  if(!mine.length) return aiProse(['아직 맡은 1인1역이 없어. 신청 탭에서 역할을 신청해봐!']);
+  return aiProse([`🎯 현재 맡은 역할 <b>${mine.length}개</b>야.`,...mine.map(([did,d])=>{
+    const done=!!((cache.completions[did]||{})[currentUser.uid]||{}).done;
+    return `· <b>${esc(d.title)}</b> — ${done?'✅ 완료':'⏳ 미완료'}`;
+  })]);
+}
+function aiMyApplication(){
+  const apps=[];
+  Object.entries(cache.duties||{}).forEach(([,d])=>{
+    const a=(d.applications||{})[currentUser.uid];
+    if(a) apps.push(`· <b>${esc(d.title)}</b> — ${a.status==='pending'?'🕐 검토 중':a.status==='approved'?'✅ 승인됨':'❌ 거절됨'}`);
+  });
+  if(!apps.length) return aiProse(['신청한 1인1역이 없어.']);
+  return aiProse([`📋 내 신청 현황이야.`,...apps]);
+}
+function aiMyMemos(){
+  const mine=Object.values(cache.memos||{}).filter(m=>m.toUid===currentUser.uid);
+  const unread=mine.filter(m=>!m.read).length;
+  if(!mine.length) return aiProse(['받은 메모가 없어.']);
+  return aiProse([`📨 받은 메모 <b>${mine.length}건</b>${unread?`, 안 읽은 메모 <b>${unread}건</b>있어!`:' (전부 읽음)'}야.`]);
+}
 function aiProse(lines){return `<div style="line-height:1.8;font-size:13.5px">${lines.join('<br>')}</div>`;}
 function aiAnswer(text){
   const t=text.toLowerCase();
@@ -1805,38 +1834,69 @@ function aiSend(){
   const inp=g('aiChatInput');if(!inp)return;
   const text=inp.value.trim();if(!text)return;
   inp.value='';
+  const drop=g('aiSuggestDrop');if(drop)drop.style.display='none';
   aiConversation.push({role:'user',text,ts:Date.now()});
   renderPage('ai');
   setTimeout(()=>{aiConversation.push({role:'ai',html:aiAnswer(text),ts:Date.now()});renderPage('ai');const wrap=g('aiChatWrap');if(wrap)wrap.scrollTop=wrap.scrollHeight;},300);
 }
 function aiClear(){aiConversation=[];renderPage('ai');}
+
+function aiGetSuggestions(text){
+  if(!text.trim()) return [];
+  const t=text.toLowerCase();
+  return AI_INTENTS.filter(i=>i.keys.some(k=>k.includes(t)||t.includes(k))||
+    (i.label&&i.label.toLowerCase().includes(t))).slice(0,5);
+}
+function aiInputChange(){
+  const inp=g('aiChatInput');if(!inp)return;
+  const text=inp.value;
+  const drop=g('aiSuggestDrop');if(!drop)return;
+  const sugs=aiGetSuggestions(text);
+  if(!sugs.length||!text.trim()){drop.style.display='none';return;}
+  drop.innerHTML=sugs.map(s=>`<button onclick="aiPickSuggest('${s.label.replace(/'/g,"\'")}')" style="display:block;width:100%;text-align:left;padding:9px 14px;border-bottom:1px solid var(--border2);font-size:13.5px;background:none;color:var(--text)">💬 ${esc(s.label)}</button>`).join('');
+  drop.style.display='block';
+}
+function aiPickSuggest(label){
+  const inp=g('aiChatInput');if(inp)inp.value=label;
+  const drop=g('aiSuggestDrop');if(drop)drop.style.display='none';
+  aiSend();
+}
+
 function renderAI(){
-  if(!isAdmin()){g('pageContent').innerHTML=`<div class="card">${emptyDiv('관리자만 접근')}</div>`;return;}
+  const quickBtns=['전체 현황 요약','내 역할','민원 현황','투표 현황','내 신청 현황','멤버 현황','회의 현황','도움말'];
   const chatHtml=aiConversation.map(m=>m.role==='user'
-    ?`<div style="display:flex;justify-content:flex-end;margin-bottom:9px"><div style="background:var(--g2);color:#fff;border-radius:15px 15px 4px 15px;padding:9px 13px;max-width:78%;font-size:13.5px">${esc(m.text)}</div></div>`
-    :`<div style="display:flex;gap:8px;margin-bottom:9px"><div style="width:28px;height:28px;border-radius:50%;background:var(--g1);display:flex;align-items:center;justify-content:center;flex-shrink:0">🤖</div><div style="background:var(--surface2);border:1px solid var(--border);border-radius:4px 15px 15px 15px;padding:9px 13px;max-width:82%;font-size:13.5px;line-height:1.7">${m.html||esc(m.text)}</div></div>`
+    ?`<div style="display:flex;justify-content:flex-end;margin-bottom:10px"><div style="background:linear-gradient(135deg,var(--g2),var(--g3));color:#fff;border-radius:16px 16px 4px 16px;padding:10px 14px;max-width:78%;font-size:14px;box-shadow:0 2px 8px rgba(27,176,82,.25)">${esc(m.text)}</div></div>`
+    :`<div style="display:flex;gap:9px;margin-bottom:10px"><div style="width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,var(--g1),#c8f0d8);display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0">🤖</div><div style="background:var(--surface2);border:1px solid var(--border);border-radius:4px 16px 16px 16px;padding:10px 14px;max-width:82%;font-size:14px;line-height:1.7">${m.html||esc(m.text)}</div></div>`
   ).join('');
   g('pageContent').innerHTML=`
-    <div class="card" style="display:flex;flex-direction:column;height:calc(100vh - 170px);padding:0">
-      <div style="padding:14px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:9px">
-        <div style="width:34px;height:34px;border-radius:50%;background:var(--g1);display:flex;align-items:center;justify-content:center;font-size:16px">🤖</div>
-        <div><div style="font-weight:800;font-size:14.5px">AI 브리핑</div><div style="font-size:11px;color:var(--g2)">● 온라인</div></div>
+    <div class="card" style="display:flex;flex-direction:column;height:calc(100vh - 170px);padding:0;overflow:hidden">
+      <div style="padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:11px;flex-shrink:0">
+        <div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,var(--g2),var(--g3));display:flex;align-items:center;justify-content:center;font-size:18px;box-shadow:0 4px 12px rgba(27,176,82,.3)">🤖</div>
+        <div><div style="font-weight:800;font-size:15px">AI 브리핑</div><div style="font-size:11px;color:var(--g2);font-weight:600">● 실시간 데이터 연결됨</div></div>
         ${aiConversation.length?`<button class="btn ghost small" style="margin-left:auto" onclick="aiClear()">초기화</button>`:''}
       </div>
-      <div id="aiChatWrap" style="flex:1;overflow-y:auto;padding:16px 14px">
-        ${!aiConversation.length?`<div style="text-align:center;padding:30px 10px">
-          <div style="font-size:30px;margin-bottom:10px">🤖</div>
-          <div style="font-weight:800;font-size:15px;margin-bottom:6px">안녕! 뭐가 궁금해?</div>
-          <div style="display:flex;flex-wrap:wrap;gap:6px;justify-content:center">
-            ${['오늘 요약','민원 있어?','신청 현황','투표 현황','도움말'].map(q=>`<button class="btn ghost small" onclick="g('aiChatInput').value='${q}';aiSend()">${q}</button>`).join('')}
+      <div id="aiChatWrap" style="flex:1;overflow-y:auto;padding:18px 16px">
+        ${!aiConversation.length?`<div style="text-align:center;padding:28px 10px">
+          <div style="font-size:36px;margin-bottom:12px">🤖</div>
+          <div style="font-weight:800;font-size:16px;margin-bottom:6px">안녕! 뭐가 궁금해?</div>
+          <div style="font-size:13px;color:var(--text2);margin-bottom:20px">아래 버튼을 누르거나 직접 입력해봐. 입력하면 자동완성이 떠.</div>
+          <div style="display:flex;flex-wrap:wrap;gap:7px;justify-content:center">
+            ${quickBtns.map(q=>`<button class="btn ghost small" onclick="g('aiChatInput').value='${q}';aiSend()">${q}</button>`).join('')}
           </div></div>`:chatHtml}
       </div>
-      <div style="padding:11px 14px;border-top:1px solid var(--border)">
-        <div class="row"><input id="aiChatInput" placeholder="질문을 입력해봐..." style="flex:1" onkeydown="if(event.key==='Enter'){aiSend();}"><button class="btn small" onclick="aiSend()">전송</button></div>
+      <div style="padding:12px 16px;border-top:1px solid var(--border);flex-shrink:0;position:relative">
+        <div id="aiSuggestDrop" style="display:none;position:absolute;bottom:100%;left:16px;right:16px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-md);box-shadow:var(--shadow-md);overflow:hidden;z-index:10;margin-bottom:4px"></div>
+        <div class="chat-input-wrap">
+          <input id="aiChatInput" placeholder="질문이나 키워드를 입력해봐 (예: 민원, 내 역할, 투표)..." style="flex:1;background:none;border:none;box-shadow:none;padding:4px 0;font-size:14px"
+            oninput="aiInputChange()"
+            onkeydown="if(event.key==='Enter'){const d=g('aiSuggestDrop');if(d)d.style.display='none';aiSend();}if(event.key==='Escape'){const d=g('aiSuggestDrop');if(d)d.style.display='none';}">
+          <button class="btn small" onclick="aiSend()">전송</button>
+        </div>
       </div>
     </div>`;
   const wrap=g('aiChatWrap');if(wrap)wrap.scrollTop=wrap.scrollHeight;
 }
+
 
 /* ── Me ── */
 function renderMe(){
